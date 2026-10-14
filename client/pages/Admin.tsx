@@ -19,6 +19,7 @@ import AdminProfile from "@/components/admin/AdminProfile";
 import EmploymentManagement from "@/components/admin/EmploymentManagement";
 import AdminWindows from "@/components/admin/AdminWindows";
 import AdminFooter from "@/components/admin/AdminFooter";
+import { ProfileDropdown } from "@/components/admin/ProfileDropdown";
 
 export default function Admin() {
   // Triple-check: Env Key == Entered Key == DB Key is required for initial activation.
@@ -80,6 +81,10 @@ export default function Admin() {
     },
   ];
 
+  const desktopNavItems = navItems.filter(
+    (item) => item.id !== "settings" && item.id !== "profile",
+  );
+
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
@@ -118,16 +123,19 @@ export default function Admin() {
       <div className="flex flex-col min-h-screen">
         <div className="flex-1 container mx-auto px-4 py-6 pb-12">
           <div className="space-y-6">
-            <div className="space-y-1">
-              <h1 className="text-2xl font-semibold text-foreground">Admin Panel</h1>
-              <p className="text-sm text-muted-foreground">
-                Manage system operations, monitor queues, and configure settings
-              </p>
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <h1 className="text-2xl font-semibold text-foreground">Admin Panel</h1>
+                <p className="text-sm text-muted-foreground">
+                  Manage system operations, monitor queues, and configure settings
+                </p>
+              </div>
+              <ProfileDropdown navItems={navItems} />
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="flex h-11 w-full justify-start gap-1 overflow-x-auto">
-                {navItems.map((item) => (
+                {desktopNavItems.map((item) => (
                   <TabsTrigger
                     key={item.id}
                     value={item.id}

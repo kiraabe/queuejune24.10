@@ -10,7 +10,7 @@ import {
   DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Settings, User, LogOut, Globe } from "lucide-react";
+import { ChevronDown, Settings, User, LogOut, Globe } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage, Language, LANGUAGE_LABELS } from "@/hooks/use-language";
 
@@ -43,13 +43,17 @@ export function ProfileDropdown({ navItems }: ProfileDropdownProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="relative h-10 w-10 rounded-full outline-none ring-offset-background transition-all hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring">
-          <Avatar className="h-10 w-10 border border-border shadow-sm">
+        <button className="flex items-center gap-2 rounded-md outline-none ring-offset-background transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring">
+          <Avatar className="h-9 w-9 border border-border shadow-sm">
             <AvatarImage src="" alt={displayName} />
             <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
               {initials}
             </AvatarFallback>
           </Avatar>
+          <span className="hidden text-sm font-medium text-foreground sm:inline">
+            {displayName}
+          </span>
+          <ChevronDown className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
