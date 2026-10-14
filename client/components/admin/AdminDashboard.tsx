@@ -1,6 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
 import { useSSE } from "@/hooks/use-sse";
-import { useAuth } from "@/hooks/use-auth";
 import { apiFetch, apiUrl } from "@/lib/api";
 import {
   Card,
@@ -9,7 +8,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,7 +34,6 @@ import type {
   Ticket,
   DisplayState,
 } from "@shared/api";
-import { format } from "date-fns";
 import DailyReportViewer from "./DailyReportViewer";
 import EmployeePerformanceDashboard from "./EmployeePerformanceDashboard";
 import CaseWorkflowTracker from "./CaseWorkflowTracker";
@@ -44,6 +41,8 @@ import EmployeeCaseQueue from "./EmployeeCaseQueue";
 import ServiceCategoryAnalytics from "./ServiceCategoryAnalytics";
 import OverallEmployeeAnalytics from "./OverallEmployeeAnalytics";
 import OverallCategoryAnalytics from "./OverallCategoryAnalytics";
+import MetricTile from "./dashboard/MetricTile";
+import CurrentDisplayCard from "./dashboard/CurrentDisplayCard";
 
 interface DashboardStats {
   totalWaiting: number;
@@ -67,8 +66,34 @@ interface EmployeeStats {
   avgDuration: number | null;
 }
 
+const formatSeconds = (seconds: number | null) => {
+  if (seconds === null) return "N/A";
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+
+  if (hours > 0) {
+    return `${hours}hr ${minutes}min ${secs}sec`;
+  } else if (minutes > 0) {
+    return `${minutes}min ${secs}sec`;
+  } else {
+    return `${secs}sec`;
+  }
+};
+
+const healthBadgeClass: Record<DashboardStats["systemHealth"], string> = {
+  healthy: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  warning: "border-amber-200 bg-amber-50 text-amber-800",
+  critical: "border-red-200 bg-red-50 text-red-700",
+};
+
+const healthLabel: Record<DashboardStats["systemHealth"], string> = {
+  healthy: "Healthy",
+  warning: "Warning",
+  critical: "Critical",
+};
+
 export default function AdminDashboard() {
-  const { user } = useAuth();
   const [windows, setWindows] = useState<WindowState[]>([]);
   const [tickets, setTickets] = useState<Record<string, Ticket>>({});
   const [display, setDisplay] = useState<DisplayState | null>(null);
@@ -228,47 +253,164 @@ export default function AdminDashboard() {
     };
   }, [tickets]);
 
-  const formatSeconds = (seconds: number | null) => {
-    if (seconds === null) return "N/A";
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
+  const employeeMetrics = [
+    {
+      label: "Total Employees",
+      value: employeeStats.totalEmployees,
+      hint: "active staff",
+      icon: Users,
+      tooltipTitle: "Total Employees",
+      tooltipDescription: "Staff availability indicator",
+    },
+    {
+      label: "Total Cases",
+      value: stats.totalCompleted,
+      hint: "completed tickets",
+      icon: Briefcase,
+      tooltipTitle: "Total Cases",
+      tooltipDescription: "Success/completed indicator",
+    },
+    {
+      label: "Top Performer",
+      value: employeeStats.topPerformer,
+      hint: "by cases",
+      icon: Award,
+      tooltipTitle: "Top Performer",
+      tooltipDescription: "Outstanding/award indicator",
+    },
+    {
+      label: "Avg Duration",
+      value:
+        employeeStats.avgDuration !== null
+          ? formatSeconds(employeeStats.avgDuration)
+          : "N/A",
+      hint: "per case",
+      icon: Clock,
+      tooltipTitle: "Average Duration",
+      tooltipDescription: "Time-based warning indicator",
+    },
+    {
+      label: "Total Windows",
+      value: windows.length,
+      hint: "total available",
+      icon: Zap,
+      tooltipTitle: "Total Windows",
+      tooltipDescription: "Capacity/resources indicator",
+    },
+  ];
 
-    if (hours > 0) {
-      return `${hours}hr ${minutes}min ${secs}sec`;
-    } else if (minutes > 0) {
-      return `${minutes}min ${secs}sec`;
-    } else {
-      return `${secs}sec`;
-    }
-  };
+  const performanceMetrics = [
+    {
+      label: "Avg Handling Time",
+      value: formatSeconds(stats.averageHandlingTime),
+      hint: "per completed ticket",
+      icon: Clock,
+      tooltipTitle: "Average Handling Time",
+      tooltipDescription: "Average time spent handling cases",
+    },
+    {
+      label: "Longest Wait",
+      value: formatSeconds(stats.longestWaitTime),
+      hint: "current customer",
+      icon: TrendingUp,
+      tooltipTitle: "Longest Wait Time",
+      tooltipDescription: "Longest waiting customer (watch for delays)",
+    },
+    {
+      label: "Avg Wait Time",
+      value: formatSeconds(stats.averageWaitTime),
+      hint: "queue average",
+      icon: Clock,
+      tooltipTitle: "Average Wait Time",
+      tooltipDescription: "Average time customers wait in queue",
+    },
+  ];
 
-  const healthBadgeColor =
-    stats.systemHealth === "healthy"
-      ? "bg-green-100 text-green-800"
-      : stats.systemHealth === "warning"
-        ? "bg-yellow-100 text-yellow-800"
-        : "bg-red-100 text-red-800";
+  const queueMetrics = [
+    {
+      label: "Waiting",
+      value: stats.totalWaiting,
+      hint: "in queue",
+      icon: Users,
+      tooltipTitle: "Customers Waiting",
+      tooltipDescription: "Customers currently in queue waiting for service",
+    },
+    {
+      label: "Serving",
+      value: stats.totalServing,
+      hint: "being served",
+      icon: Zap,
+      tooltipTitle: "Customers Being Served",
+      tooltipDescription: "Customers currently with staff members",
+    },
+    {
+      label: "Served Today",
+      value: stats.servedToday,
+      hint: "completed",
+      icon: CheckCircle,
+      tooltipTitle: "Served Today",
+      tooltipDescription: "Completed customer cases (since midnight)",
+    },
+    {
+      label: "Completion Rate",
+      value: `${stats.completionRate}%`,
+      hint: "today's rate",
+      icon: CheckCircle,
+      tooltipTitle: "Completion Rate",
+      tooltipDescription: "Percentage of completed vs total cases",
+    },
+    {
+      label: "Skipped",
+      value: stats.skippedToday,
+      hint: "skipped today",
+      icon: SkipForward,
+      tooltipTitle: "Skipped Cases",
+      tooltipDescription: "Customers who skipped their turn",
+    },
+    {
+      label: "Hold",
+      value: stats.holdToday,
+      hint: "hold today",
+      icon: Pause,
+      tooltipTitle: "Cases on Hold",
+      tooltipDescription: "Cases transferred or waiting for transfer",
+    },
+  ];
+
+  const renderMetricGrid = (
+    metrics: typeof employeeMetrics,
+    columns: string,
+  ) => (
+    <div className={`grid grid-cols-1 gap-4 ${columns}`}>
+      {metrics.map((metric) => (
+        <MetricTile key={metric.label} {...metric} />
+      ))}
+    </div>
+  );
 
   return (
-    <div className="space-y-8 sm:space-y-10 md:space-y-12">
-      {/* Health Alert */}
+    <div className="space-y-6">
       {stats.systemHealth !== "healthy" && (
-        <Alert variant="default" className="border-orange-500 bg-orange-50">
-          <AlertCircle className="h-4 w-4 text-orange-600" />
-          <AlertDescription className="text-orange-800">
+        <Alert
+          className={
+            stats.systemHealth === "critical"
+              ? "border-red-200 bg-red-50 text-red-900"
+              : "border-amber-200 bg-amber-50 text-amber-900"
+          }
+        >
+          <AlertCircle className="h-4 w-4" aria-hidden="true" />
+          <AlertDescription>
             {stats.systemHealth === "critical"
-              ? `⚠️ Critical: Longest wait time is ${formatSeconds(stats.longestWaitTime)}. Consider opening additional windows.`
-              : `⚠️ Warning: Longest wait time is ${formatSeconds(stats.longestWaitTime)}. Monitor queue status closely.`}
+              ? `Critical: Longest wait time is ${formatSeconds(stats.longestWaitTime)}. Consider opening additional windows.`
+              : `Warning: Longest wait time is ${formatSeconds(stats.longestWaitTime)}. Monitor queue status closely.`}
           </AlertDescription>
         </Alert>
       )}
 
-      {/* System Status */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="space-y-1">
               <CardTitle>System Status</CardTitle>
               <CardDescription>
                 Real-time system health and activity
@@ -276,27 +418,20 @@ export default function AdminDashboard() {
             </div>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Badge className={healthBadgeColor}>
-                  {stats.systemHealth === "healthy"
-                    ? "✓ Healthy"
-                    : stats.systemHealth === "warning"
-                      ? "⚠ Warning"
-                      : "✕ Critical"}
+                <Badge
+                  variant="outline"
+                  className={healthBadgeClass[stats.systemHealth]}
+                >
+                  {healthLabel[stats.systemHealth]}
                 </Badge>
               </TooltipTrigger>
               <TooltipContent>
                 <div className="space-y-2">
                   <p className="font-semibold">System Health Status</p>
-                  <div className="text-xs space-y-1">
-                    <p>
-                      <span className="font-medium text-green-600">🟢 Healthy:</span> Wait time under 30 mins
-                    </p>
-                    <p>
-                      <span className="font-medium text-yellow-600">🟡 Warning:</span> Wait time 30-60 mins
-                    </p>
-                    <p>
-                      <span className="font-medium text-red-600">🔴 Critical:</span> Wait time over 60 mins
-                    </p>
+                  <div className="space-y-1 text-xs">
+                    <p>Healthy: wait time under 30 mins</p>
+                    <p>Warning: wait time 30-60 mins</p>
+                    <p>Critical: wait time over 60 mins</p>
                   </div>
                 </div>
               </TooltipContent>
@@ -304,230 +439,23 @@ export default function AdminDashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-5">
-            {/* Total Employees */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="space-y-2 rounded-[16px] border p-4 md:p-5 hover:shadow-md transition-shadow cursor-help">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Total Employees
-                    </span>
-                    <Users className="h-4 w-4 text-blue-500" />
-                  </div>
-                  <p className="text-2xl md:text-3xl font-bold">
-                    {employeeStats.totalEmployees}
-                  </p>
-                  <p className="text-xs text-muted-foreground">active staff</p>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <div className="space-y-2">
-                  <p className="font-semibold">Total Employees</p>
-                  <p className="text-xs">
-                    <span className="font-medium text-blue-600">🔵 Blue:</span> Staff availability indicator
-                  </p>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-
-            {/* Total Cases */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="space-y-2 rounded-[16px] border p-4 md:p-5 hover:shadow-md transition-shadow cursor-help">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Total Cases
-                    </span>
-                    <Briefcase className="h-4 w-4 text-green-500" />
-                  </div>
-                  <p className="text-2xl md:text-3xl font-bold">{stats.totalCompleted}</p>
-                  <p className="text-xs text-muted-foreground">completed tickets</p>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <div className="space-y-2">
-                  <p className="font-semibold">Total Cases</p>
-                  <p className="text-xs">
-                    <span className="font-medium text-green-600">🟢 Green:</span> Success/completed indicator
-                  </p>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-
-            {/* Top Performer */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="space-y-2 rounded-[16px] border p-4 md:p-5 hover:shadow-md transition-shadow cursor-help">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Top Performer
-                    </span>
-                    <Award className="h-4 w-4 text-yellow-500" />
-                  </div>
-                  <p className="text-2xl md:text-3xl font-bold truncate">
-                    {employeeStats.topPerformer}
-                  </p>
-                  <p className="text-xs text-muted-foreground">by cases</p>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <div className="space-y-2">
-                  <p className="font-semibold">Top Performer</p>
-                  <p className="text-xs">
-                    <span className="font-medium text-yellow-600">🟡 Yellow:</span> Outstanding/award indicator
-                  </p>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-
-            {/* Avg Duration */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="space-y-2 rounded-[16px] border p-4 md:p-5 hover:shadow-md transition-shadow cursor-help">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Avg Duration
-                    </span>
-                    <Clock className="h-4 w-4 text-orange-500" />
-                  </div>
-                  <p className="text-2xl md:text-3xl font-bold">
-                    {employeeStats.avgDuration !== null
-                      ? formatSeconds(employeeStats.avgDuration)
-                      : "N/A"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">per case</p>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <div className="space-y-2">
-                  <p className="font-semibold">Average Duration</p>
-                  <p className="text-xs">
-                    <span className="font-medium text-orange-600">🟠 Orange:</span> Time-based warning indicator
-                  </p>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-
-            {/* Total Windows */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="space-y-2 rounded-[16px] border p-4 md:p-5 hover:shadow-md transition-shadow cursor-help">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Total Windows
-                    </span>
-                    <Zap className="h-4 w-4 text-purple-500" />
-                  </div>
-                  <p className="text-2xl md:text-3xl font-bold">{windows.length}</p>
-                  <p className="text-xs text-muted-foreground">total available</p>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <div className="space-y-2">
-                  <p className="font-semibold">Total Windows</p>
-                  <p className="text-xs">
-                    <span className="font-medium text-purple-600">🟣 Purple:</span> Capacity/resources indicator
-                  </p>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          </div>
+          {renderMetricGrid(
+            employeeMetrics,
+            "md:grid-cols-2 xl:grid-cols-5",
+          )}
         </CardContent>
       </Card>
 
-      {/* Performance Metrics */}
       <Card>
         <CardHeader>
           <CardTitle>Performance Metrics</CardTitle>
           <CardDescription>Service timing and queue statistics</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {/* Avg Handling Time */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="space-y-2 rounded-[16px] border p-4 md:p-5 hover:shadow-md transition-shadow cursor-help">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-blue-500" />
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Avg Handling Time
-                    </span>
-                  </div>
-                  <p className="text-2xl md:text-3xl font-bold">
-                    {formatSeconds(stats.averageHandlingTime)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    per completed ticket
-                  </p>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <div className="space-y-2">
-                  <p className="font-semibold">Average Handling Time</p>
-                  <p className="text-xs">
-                    <span className="font-medium text-blue-600">🔵 Blue:</span> Average time spent handling cases
-                  </p>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-
-            {/* Longest Wait */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="space-y-2 rounded-[16px] border p-4 md:p-5 hover:shadow-md transition-shadow cursor-help">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-orange-500" />
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Longest Wait
-                    </span>
-                  </div>
-                  <p className="text-2xl md:text-3xl font-bold">
-                    {formatSeconds(stats.longestWaitTime)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">current customer</p>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <div className="space-y-2">
-                  <p className="font-semibold">Longest Wait Time</p>
-                  <p className="text-xs">
-                    <span className="font-medium text-orange-600">🟠 Orange:</span> Longest waiting customer (watch for delays)
-                  </p>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-
-            {/* Avg Wait Time */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="space-y-2 rounded-[16px] border p-4 md:p-5 hover:shadow-md transition-shadow cursor-help">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Avg Wait Time
-                    </span>
-                  </div>
-                  <p className="text-2xl md:text-3xl font-bold">
-                    {formatSeconds(stats.averageWaitTime)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">queue average</p>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <div className="space-y-2">
-                  <p className="font-semibold">Average Wait Time</p>
-                  <p className="text-xs">
-                    <span className="font-medium text-gray-600">⚪ Gray:</span> Average time customers wait in queue
-                  </p>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          </div>
+          {renderMetricGrid(performanceMetrics, "md:grid-cols-2 xl:grid-cols-3")}
         </CardContent>
       </Card>
 
-      {/* Queue Actions */}
       <Card>
         <CardHeader>
           <CardTitle>Queue Actions</CardTitle>
@@ -536,412 +464,54 @@ export default function AdminDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {/* Waiting */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="space-y-2 rounded-[16px] border p-4 md:p-5 hover:shadow-md transition-shadow cursor-help">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-blue-500" />
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Waiting
-                    </span>
-                  </div>
-                  <p className="text-2xl md:text-3xl font-bold">{stats.totalWaiting}</p>
-                  <p className="text-xs text-muted-foreground">in queue</p>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <div className="space-y-2">
-                  <p className="font-semibold">Customers Waiting</p>
-                  <p className="text-xs">
-                    <span className="font-medium text-blue-600">🔵 Blue:</span> Customers currently in queue waiting for service
-                  </p>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-
-            {/* Serving */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="space-y-2 rounded-[16px] border p-4 md:p-5 hover:shadow-md transition-shadow cursor-help">
-                  <div className="flex items-center gap-2">
-                    <Zap className="h-4 w-4 text-green-500" />
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Serving
-                    </span>
-                  </div>
-                  <p className="text-2xl md:text-3xl font-bold">{stats.totalServing}</p>
-                  <p className="text-xs text-muted-foreground">being served</p>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <div className="space-y-2">
-                  <p className="font-semibold">Customers Being Served</p>
-                  <p className="text-xs">
-                    <span className="font-medium text-green-600">🟢 Green:</span> Customers currently with staff members
-                  </p>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-
-            {/* Served Today */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="space-y-2 rounded-[16px] border p-4 md:p-5 hover:shadow-md transition-shadow cursor-help">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Served Today
-                    </span>
-                  </div>
-                  <p className="text-2xl md:text-3xl font-bold">{stats.servedToday}</p>
-                  <p className="text-xs text-muted-foreground">completed</p>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <div className="space-y-2">
-                  <p className="font-semibold">Served Today</p>
-                  <p className="text-xs">
-                    <span className="font-medium text-green-600">🟢 Green:</span> Completed customer cases (since midnight)
-                  </p>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-
-            {/* Completion Rate */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="space-y-2 rounded-[16px] border p-4 md:p-5 hover:shadow-md transition-shadow cursor-help">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-emerald-600" />
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Completion Rate
-                    </span>
-                  </div>
-                  <p className="text-2xl md:text-3xl font-bold">{stats.completionRate}%</p>
-                  <p className="text-xs text-muted-foreground">today's rate</p>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <div className="space-y-2">
-                  <p className="font-semibold">Completion Rate</p>
-                  <p className="text-xs">
-                    <span className="font-medium text-emerald-600">💚 Emerald:</span> Percentage of completed vs total cases
-                  </p>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-
-            {/* Skipped */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="space-y-2 rounded-[16px] border p-4 md:p-5 hover:shadow-md transition-shadow cursor-help">
-                  <div className="flex items-center gap-2">
-                    <SkipForward className="h-4 w-4 text-yellow-500" />
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Skipped
-                    </span>
-                  </div>
-                  <p className="text-2xl md:text-3xl font-bold">{stats.skippedToday}</p>
-                  <p className="text-xs text-muted-foreground">skipped today</p>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <div className="space-y-2">
-                  <p className="font-semibold">Skipped Cases</p>
-                  <p className="text-xs">
-                    <span className="font-medium text-yellow-600">🟡 Yellow:</span> Customers who skipped their turn
-                  </p>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-
-            {/* Hold */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="space-y-2 rounded-[16px] border p-4 md:p-5 hover:shadow-md transition-shadow cursor-help">
-                  <div className="flex items-center gap-2">
-                    <Pause className="h-4 w-4 text-orange-500" />
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Hold
-                    </span>
-                  </div>
-                  <p className="text-2xl md:text-3xl font-bold">{stats.holdToday}</p>
-                  <p className="text-xs text-muted-foreground">hold today</p>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <div className="space-y-2">
-                  <p className="font-semibold">Cases on Hold</p>
-                  <p className="text-xs">
-                    <span className="font-medium text-orange-600">🟠 Orange:</span> Cases transferred or waiting for transfer
-                  </p>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          </div>
+          {renderMetricGrid(queueMetrics, "md:grid-cols-2 xl:grid-cols-3")}
         </CardContent>
       </Card>
 
-      {/* Current Display State */}
-      {display && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Current Display State</CardTitle>
-            <CardDescription>Live display board information</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="current" className="w-full">
-              <TabsList>
-                <TabsTrigger value="current">Now Serving</TabsTrigger>
-                <TabsTrigger value="next">Next</TabsTrigger>
-                <TabsTrigger value="queue">Queue Preview</TabsTrigger>
-              </TabsList>
+      {display && <CurrentDisplayCard display={display} tickets={tickets} />}
 
-              <TabsContent value="current" className="space-y-3 sm:space-y-4 mt-4">
-                {display.current.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                    {display.current.map((ticket) => (
-                      <div key={ticket.id} className="rounded-[16px] border p-4 md:p-5 hover:shadow-md transition-shadow">
-                        <div className="space-y-3">
-                          <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                              Now Serving
-                            </p>
-                            <p className="text-3xl font-bold text-green-600 mt-1">
-                              {ticket.code}
-                            </p>
-                          </div>
-                          {ticket.ownerName && (
-                            <p className="text-sm font-medium text-foreground">
-                              {ticket.ownerName}
-                            </p>
-                          )}
-                          {ticket.windowId && (
-                            <p className="text-xs text-muted-foreground">
-                              <span className="font-medium">Window {ticket.windowId}</span>
-                            </p>
-                          )}
-                          <div className="border-t pt-3 space-y-2">
-                            <p className="text-xs font-medium text-muted-foreground">
-                              Service: {ticket.service}
-                            </p>
-                            {ticket.currentEmployee && (
-                              <div className="rounded-lg bg-blue-50 px-2 py-2">
-                                <p className="text-xs font-semibold text-blue-700">Handler</p>
-                                <p className="text-xs font-bold text-blue-900">
-                                  {ticket.currentEmployee.fullName}
-                                </p>
-                                <p className="text-xs text-blue-700">
-                                  {ticket.currentEmployee.jobTitleAmharic ||
-                                    ticket.currentEmployee.jobTitle}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="rounded-[16px] border p-4 md:p-5 text-center text-muted-foreground">
-                    No customer currently being served
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="next" className="space-y-3 sm:space-y-4 mt-4">
-                {(() => {
-                  const nextTickets = [display.next, display.nextAfter].filter(
-                    Boolean,
-                  );
-                  return nextTickets.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                      {nextTickets.map((ticket, index) => (
-                        <div
-                          key={ticket?.id || index}
-                          className="rounded-[16px] border p-4 md:p-5 hover:shadow-md transition-shadow"
-                        >
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <p className="text-sm text-muted-foreground">
-                                {index === 0 ? "Next Ticket" : "After Next"}
-                              </p>
-                              <p className="text-3xl font-bold text-blue-600">
-                                {ticket?.code}
-                              </p>
-                            </div>
-                            {ticket?.currentEmployee && (
-                              <div className="text-right">
-                                <div className="rounded-lg bg-blue-50 px-3 py-2">
-                                  <p className="text-xs font-semibold text-blue-700">
-                                    Handler
-                                  </p>
-                                  <p className="text-sm font-bold text-blue-900">
-                                    {ticket.currentEmployee.fullName}
-                                  </p>
-                                  <p className="text-xs text-blue-700">
-                                    {ticket.currentEmployee.jobTitleAmharic ||
-                                      ticket.currentEmployee.jobTitle}
-                                  </p>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                          <div className="mt-3 space-y-2 border-t pt-3">
-                            <p className="text-sm">
-                              <span className="font-medium">Service:</span>{" "}
-                              {ticket?.service}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="rounded-[16px] border p-4 md:p-5 text-center text-muted-foreground">
-                      No next tickets
-                    </div>
-                  );
-                })()}
-              </TabsContent>
-
-              <TabsContent value="queue" className="space-y-4">
-                <div className="space-y-2">
-                  {(() => {
-                    const allWaitingTickets = Object.values(tickets).filter(
-                      (t) => t.status === "waiting",
-                    );
-                    return (
-                      <>
-                        <p className="text-sm font-medium text-muted-foreground">
-                          Queue Overview ({allWaitingTickets.length} waiting)
-                        </p>
-                        {allWaitingTickets.length > 0 ? (
-                          <div className="space-y-4">
-                            {Object.entries(
-                              allWaitingTickets.reduce(
-                                (acc, ticket) => {
-                                  const category = ticket.service || "Other";
-                                  if (!acc[category]) {
-                                    acc[category] = [];
-                                  }
-                                  acc[category].push(ticket);
-                                  return acc;
-                                },
-                                {} as Record<string, Ticket[]>,
-                              ),
-                            ).map(([category, categoryTickets]) => (
-                              <div key={category} className="space-y-2">
-                                <div className="rounded-lg bg-muted/40 px-3 py-2 border border-muted">
-                                  <p className="text-sm font-semibold text-foreground">
-                                    {category}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {categoryTickets.length} ticket
-                                    {categoryTickets.length !== 1 ? "s" : ""}
-                                  </p>
-                                </div>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 pl-2">
-                                  {categoryTickets.map((ticket) => (
-                                    <div
-                                      key={ticket.id}
-                                      className="rounded-[12px] border p-3 hover:bg-muted/50 transition-colors text-center"
-                                    >
-                                      <p className="font-semibold text-lg">
-                                        {ticket.code}
-                                      </p>
-                                      {ticket.ownerName && (
-                                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                                          {ticket.ownerName}
-                                        </p>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-center text-sm text-muted-foreground">
-                            Queue is empty
-                          </p>
-                        )}
-                      </>
-                    );
-                  })()}
-                </div>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Daily Report */}
       <DailyReportViewer />
 
-      {/* Advanced Analytics Section */}
-      <Card className="border-2">
+      <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-2xl">Advanced Analytics</CardTitle>
-              <CardDescription className="mt-2">
-                Comprehensive metrics for performance tracking and analysis
-              </CardDescription>
-            </div>
-          </div>
+          <CardTitle>Advanced Analytics</CardTitle>
+          <CardDescription>
+            Comprehensive metrics for performance tracking and analysis
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Toggle Buttons */}
-          <div className="flex flex-col sm:flex-row gap-2 mb-6">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <Button
               variant={analyticsView === "overall" ? "default" : "outline"}
               onClick={() => setAnalyticsView("overall")}
-              className="flex-1 sm:flex-initial"
+              className="sm:flex-initial"
             >
-              <span className="hidden sm:inline">📊 Overall Metrics (All-Time)</span>
-              <span className="sm:hidden">📊 Overall</span>
+              Overall Metrics (All-Time)
             </Button>
             <Button
               variant={analyticsView === "daily" ? "default" : "outline"}
               onClick={() => setAnalyticsView("daily")}
-              className="flex-1 sm:flex-initial"
+              className="sm:flex-initial"
             >
-              <span className="hidden sm:inline">📅 Daily Metrics</span>
-              <span className="sm:hidden">📅 Daily</span>
+              Daily Metrics
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Overall Analytics View */}
       {analyticsView === "overall" && (
-        <div className="space-y-8 sm:space-y-10 md:space-y-12">
-          {/* Overall Employee Analytics */}
+        <div className="space-y-6">
           <OverallEmployeeAnalytics />
-
-          {/* Overall Category Analytics */}
           <OverallCategoryAnalytics />
-
-          {/* Process Flow Section */}
           <CaseWorkflowTracker defaultTimeframe="all-time" />
         </div>
       )}
 
-      {/* Daily Analytics View */}
       {analyticsView === "daily" && (
-        <div className="space-y-8 sm:space-y-10 md:space-y-12">
-          {/* Employee Performance Dashboard Section */}
+        <div className="space-y-6">
           <EmployeePerformanceDashboard />
-
-          {/* Service Category Analytics Section */}
           <ServiceCategoryAnalytics />
-
-          {/* Employee Case Queue Section */}
           <EmployeeCaseQueue />
-
-          {/* Case Workflow Tracker Section */}
           <CaseWorkflowTracker />
         </div>
       )}
