@@ -194,7 +194,7 @@ function TicketPreview({
   const noteLines: string[] = [];
 
   return (
-    <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 md:p-5 text-sm text-foreground">
+    <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 md:p-5 text-sm text-foreground">
       <p className="font-semibold text-xs sm:text-sm uppercase tracking-wide text-primary">
         {t("reception.preview")}
       </p>
@@ -203,7 +203,8 @@ function TicketPreview({
           {t("reception.previewDesc")}
         </p>
       )}
-      <div className="mt-4 grid gap-3 text-sm text-muted-foreground">
+      <div className="mt-4 grid gap-5 md:grid-cols-[minmax(0,1fr)_15rem] md:gap-6">
+        <div className="grid gap-3 text-sm text-muted-foreground">
         <p>
           <span className="font-medium text-muted-foreground">{t("reception.orderNo")}</span>{" "}
           <span className="font-mono text-base sm:text-lg font-bold text-primary">
@@ -310,36 +311,39 @@ function TicketPreview({
             </div>
           </div>
         )}
-        {ticket ? (
-          <div className="mt-3 grid place-items-start">
-            {qrDataUrl ? (
-              <img
-                src={qrDataUrl}
-                alt={`QR code for ticket ${ticket.code}`}
-                className="h-32 sm:h-40 md:h-48 w-32 sm:w-40 md:w-48 rounded-md border border-border bg-white p-2"
-              />
-            ) : (
-              <div className="flex items-center gap-2 text-primary">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="text-xs sm:text-sm">
-                  {t("reception.generating2")}
-                </span>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="rounded-md border border-dashed border-border bg-background p-3 text-muted-foreground">
-            <p className="text-xs sm:text-sm">
-              {t("reception.qrPlaceholder")}
-            </p>
-          </div>
-        )}
-        {isGenerating && !ticket && (
-          <div className="flex items-center gap-2 text-primary">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="text-sm">{t("reception.generatingTicket")}</span>
-          </div>
-        )}
+        </div>
+        <div className="flex min-h-40 flex-col items-center justify-center gap-3 rounded-lg border border-border bg-card p-4">
+          {ticket ? (
+            <div className="grid place-items-center">
+              {qrDataUrl ? (
+                <img
+                  src={qrDataUrl}
+                  alt={`QR code for ticket ${ticket.code}`}
+                  className="h-40 w-40 md:h-44 md:w-44 rounded-md border border-border bg-white p-2"
+                />
+              ) : (
+                <div className="flex items-center gap-2 text-primary">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-xs sm:text-sm">
+                    {t("reception.generating2")}
+                  </span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex w-full items-center justify-center rounded-md border border-dashed border-border bg-background p-4 text-center text-muted-foreground">
+              <p className="text-xs sm:text-sm">
+                {t("reception.qrPlaceholder")}
+              </p>
+            </div>
+          )}
+          {isGenerating && !ticket && (
+            <div className="flex items-center gap-2 text-primary">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-sm">{t("reception.generatingTicket")}</span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -542,7 +546,7 @@ export default function Reception() {
               {/* Name and Woreda fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="owner-name" className="text-sm font-medium">
+                  <Label htmlFor="owner-name" className="text-sm font-semibold text-foreground">
                     {t("reception.ownerLabel")}
                   </Label>
                   <Input
@@ -555,7 +559,7 @@ export default function Reception() {
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="woreda" className="text-sm font-medium">
+                  <Label htmlFor="woreda" className="text-sm font-semibold text-foreground">
                     {t("reception.woredaLabel")}
                   </Label>
                   <Select value={woreda} onValueChange={setWoreda}>
@@ -574,11 +578,11 @@ export default function Reception() {
               </div>
 
               {/* Land Certificate fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-border pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-5 border-t border-border pt-5">
                 <div className="grid gap-2">
                   <Label
                     htmlFor="land-cert-karta"
-                    className="text-sm font-medium"
+                    className="text-sm font-semibold text-foreground"
                   >
                     karta (ካርታ) ser no.
                   </Label>
@@ -596,7 +600,7 @@ export default function Reception() {
                 <div className="grid gap-2">
                   <Label
                     htmlFor="land-cert-digital"
-                    className="text-sm font-medium"
+                    className="text-sm font-semibold text-foreground"
                   >
                     karta (ካርታ) No.
                   </Label>
@@ -615,8 +619,8 @@ export default function Reception() {
 
               {/* Service Category section */}
               {serviceCategories.length > 0 && (
-                <div className="space-y-3 border-t border-border pt-6">
-                  <Label className="text-sm font-medium">
+                <div className="space-y-3 border-t border-border pt-5">
+                  <Label className="text-sm font-semibold text-foreground">
                     {t("reception.categoryLabel")}
                   </Label>
                   <Select
@@ -639,8 +643,8 @@ export default function Reception() {
 
               {/* Services section */}
               {selectedCategory && (
-                <div className="space-y-3 border-t border-border pt-6">
-                  <Label className="text-sm font-medium">{t("reception.servicesLabel")}</Label>
+                <div className="space-y-3 border-t border-border pt-5">
+                  <Label className="text-sm font-semibold text-foreground">{t("reception.servicesLabel")}</Label>
                   {loadingCategoryServices ? (
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -654,7 +658,7 @@ export default function Reception() {
                       </AlertDescription>
                     </Alert>
                   ) : (
-                    <div className="rounded-md border border-border p-4">
+                    <div className="rounded-lg border border-border bg-card p-4">
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {categoryServices.map((svc) => (
                           <div key={svc.id} className="flex items-start gap-3">
@@ -691,7 +695,7 @@ export default function Reception() {
               {/* Submit button */}
               <Button
                 type="submit"
-                className="h-11 sm:h-12 w-full text-sm sm:text-base"
+                className="h-11 sm:h-12 w-full text-sm sm:text-base font-semibold shadow-md shadow-primary/25"
                 disabled={!isFormValid || createTicket.isPending}
               >
                 {createTicket.isPending ? (
