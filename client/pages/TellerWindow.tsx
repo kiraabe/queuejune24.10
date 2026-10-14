@@ -15,13 +15,16 @@ import {
   Megaphone,
   Play,
   SkipForward,
-  Dot,
   User,
   MapPin,
   Layers,
 } from "lucide-react";
 import { TicketSection } from "@/components/teller/TicketSection";
 import { ProceedHandoffDialog } from "@/components/teller/ProceedHandoffDialog";
+import {
+  toneNeutral,
+  toneSuccess,
+} from "@/components/teller/status-tones";
 import { toast } from "sonner";
 import { useSSE } from "@/hooks/use-sse";
 import { apiFetch, apiUrl } from "@/lib/api";
@@ -778,9 +781,9 @@ export default function TellerWindow() {
     .filter(Boolean) as string[];
 
   return (
-    <div className="container py-10">
-      <div className="mb-6">
-        <h1 className="mb-2 font-display text-3xl font-semibold">
+    <div className="container space-y-6 py-6 md:py-8">
+      <div>
+        <h1 className="mb-2 font-display text-2xl font-semibold">
           {tellerFullName
             ? `${tellerFullName} – Window ${windowId}`
             : `Window ${windowId}`}
@@ -804,58 +807,49 @@ export default function TellerWindow() {
       </div>
 
       {/* Stats summary */}
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <Card className="border-border/60 bg-card/90 p-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <Card className="p-4 md:p-6">
           <div className="text-xs uppercase text-muted-foreground">
             {t("teller.stats.customersServedToday")}
           </div>
-          <div className="mt-1 text-2xl font-semibold">
+          <div className="mt-2 text-2xl font-semibold tracking-tight md:text-3xl">
             {stats.servedToday ?? 0}
           </div>
         </Card>
-        <Card className="border-border/60 bg-card/90 p-4">
+        <Card className="p-4 md:p-6">
           <div className="text-xs uppercase text-muted-foreground">
             {t("teller.stats.ticketsSkipped")}
           </div>
-          <div className="mt-1 text-2xl font-semibold">
+          <div className="mt-2 text-2xl font-semibold tracking-tight md:text-3xl">
             {stats.skippedToday ?? 0}
           </div>
         </Card>
-        <Card className="border-border/60 bg-card/90 p-4">
+        <Card className="p-4 md:p-6">
           <div className="text-xs uppercase text-muted-foreground">
             {t("teller.stats.currentlyServing")}
           </div>
-          <div className="mt-1 text-2xl font-semibold">
+          <div className="mt-2 text-2xl font-semibold tracking-tight md:text-3xl">
             {stats.inProgress ?? 0}
           </div>
         </Card>
-        <Card className="border-border/60 bg-card/90 p-4">
+        <Card className="p-4 md:p-6">
           <div className="text-xs uppercase text-muted-foreground">{t("teller.stats.waiting")}</div>
-          <div className="mt-1 text-2xl font-semibold">
+          <div className="mt-2 text-2xl font-semibold tracking-tight md:text-3xl">
             {stats.waiting ?? 0}
           </div>
         </Card>
-        <Card className="border-border/60 bg-card/90 p-4">
+        <Card className="p-4 md:p-6">
           <div className="text-xs uppercase text-muted-foreground">
             {t("teller.stats.proceedToday")}
           </div>
-          <div className="mt-1 text-2xl font-semibold">
+          <div className="mt-2 text-2xl font-semibold tracking-tight md:text-3xl">
             {stats.proceedToday ?? 0}
           </div>
         </Card>
       </div>
 
       {w && (
-        <Card
-          className={
-            "relative overflow-hidden border border-border/60 bg-card/80 shadow-lg transition"
-          }
-        >
-          <div
-            className={`pointer-events-none absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-primary/70 via-accent/70 to-primary/70 ${
-              w.busy ? "opacity-100" : "opacity-60"
-            }`}
-          />
+        <Card>
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
@@ -876,23 +870,20 @@ export default function TellerWindow() {
                   </span>
                 </div>
               </div>
-              <Badge
-                className={
-                  w.busy
-                    ? "bg-green-600 text-white hover:bg-green-600/90"
-                    : "bg-muted text-foreground hover:bg-muted"
-                }
-              >
-                <span className="mr-1 inline-flex h-2 w-2 items-center justify-center">
-                  <Dot className={w.busy ? "text-white" : "text-foreground"} />
-                </span>
+              <Badge variant="outline" className={w.busy ? toneSuccess : toneNeutral}>
+                <span
+                  className={`mr-1.5 inline-block h-2 w-2 rounded-full ${
+                    w.busy ? "bg-emerald-600" : "bg-muted-foreground"
+                  }`}
+                  aria-hidden="true"
+                />
                 {w.busy ? "Serving" : "Idle"}
               </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <section
-              className="relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-accent/30 via-background to-background p-5"
+              className="rounded-lg border border-border bg-muted/40 p-4 md:p-6"
               role="status"
               aria-live="polite"
             >
@@ -901,10 +892,8 @@ export default function TellerWindow() {
               </p>
               <div className="mt-2 flex items-end justify-between gap-4">
                 <h2
-                  className={`font-display text-5xl font-bold tracking-widest ${
-                    w.currentTicketId
-                      ? "bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent"
-                      : "text-muted-foreground"
+                  className={`font-display text-4xl font-semibold tracking-widest md:text-5xl ${
+                    w.currentTicketId ? "text-primary" : "text-muted-foreground"
                   }`}
                 >
                   {w.currentTicketId ? (currentTicket?.code ?? "") : "—"}
@@ -920,7 +909,7 @@ export default function TellerWindow() {
                 )}
               </div>
               {serviceMeta && (
-                <p className="mt-2 text-xs text-muted-foreground">
+                <p className="mt-2 text-sm text-muted-foreground">
                   {serviceMeta.description}
                 </p>
               )}
@@ -961,7 +950,7 @@ export default function TellerWindow() {
                     <div className="text-xs uppercase text-muted-foreground mb-1">
                       karta (ካርታ) ser no.
                     </div>
-                    <p className="truncate text-sm font-medium text-blue-600">
+                    <p className="truncate text-sm font-medium text-foreground">
                       {currentTicket.landCertificateKarta}
                     </p>
                   </div>
@@ -971,7 +960,7 @@ export default function TellerWindow() {
                     <div className="text-xs uppercase text-muted-foreground mb-1">
                       karta (ካርታ) No.
                     </div>
-                    <p className="truncate text-sm font-medium text-green-600">
+                    <p className="truncate text-sm font-medium text-foreground">
                       {currentTicket.landCertificateDigital}
                     </p>
                   </div>
@@ -1074,7 +1063,7 @@ export default function TellerWindow() {
                 </p>
               )}
               {w.currentTicketId && jobTitlesQuery.isError && (
-                <p className="text-xs text-red-600">
+                <p className="text-xs text-red-700 dark:text-red-400">
                   {t("teller.window.failedLoadJobTitles")}
                 </p>
               )}
@@ -1180,7 +1169,7 @@ export default function TellerWindow() {
       )}
 
       {/* Tabs for ticket views */}
-      <div className="mt-6">
+      <div>
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList>
             <TabsTrigger value="completed">{t("teller.tabs.todayCompleted")}</TabsTrigger>

@@ -432,22 +432,22 @@ export default function Teller() {
       className="lg:grid-cols-1"
       action={<UserProfileDropdown />}
     >
-      <div className="w-full space-y-8 sm:space-y-10">
+      <div className="w-full space-y-6">
         {/* Window Controls */}
         <div className="w-full">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-base sm:text-lg md:text-xl font-semibold text-foreground">
+            <h2 className="text-lg font-semibold text-foreground">
               Window Controls
             </h2>
           </div>
-          <div className="grid gap-2 sm:gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 w-full">
+          <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {windowsQuery.data?.map((w) => (
               <Card
                 key={w.id}
-                className={`border-border/70 cursor-pointer transition-all hover:shadow-md ${
+                className={`cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   selectedWindowId === w.id
-                    ? "border-primary/60 bg-primary/5 shadow-sm shadow-primary/20"
-                    : "bg-card/80 hover:bg-card/90"
+                    ? "border-primary bg-primary/5"
+                    : "hover:border-primary/40"
                 }`}
                 onClick={() => setSelectedWindowId(w.id)}
                 role="button"
@@ -462,21 +462,21 @@ export default function Teller() {
                 }}
               >
                 <CardHeader className="pb-3 sm:pb-4">
-                  <CardTitle className="flex items-center justify-between text-base sm:text-lg">
+                  <CardTitle className="flex items-center justify-between text-base">
                     <span>{w.name}</span>
                     <span
-                      className={`text-xs sm:text-sm font-medium ${w.busy ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}
+                      className={`text-sm font-medium ${w.busy ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground"}`}
                     >
                       {w.busy ? "Serving" : "Idle"}
                     </span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="rounded-lg sm:rounded-xl border border-border/60 bg-background/70 p-3 sm:p-4">
+                  <div className="rounded-md border border-border bg-muted/40 p-3">
                     <p className="text-xs uppercase tracking-wide text-muted-foreground font-medium">
                       Current ticket
                     </p>
-                    <p className="mt-2 font-display text-xl sm:text-2xl font-bold text-foreground">
+                    <p className="mt-2 font-display text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
                       {w.currentTicketId
                         ? (tickets[w.currentTicketId]?.code ?? "")
                         : "—"}
@@ -500,7 +500,7 @@ export default function Teller() {
                             <span className="text-muted-foreground">
                               karta (ካርታ) ser no.
                             </span>
-                            <span className="font-medium text-blue-600">
+                            <span className="font-medium text-foreground">
                               {tickets[w.currentTicketId].landCertificateKarta}
                             </span>
                           </div>
@@ -510,7 +510,7 @@ export default function Teller() {
                             <span className="text-muted-foreground">
                               karta (ካርታ) No.
                             </span>
-                            <span className="font-medium text-green-600">
+                            <span className="font-medium text-foreground">
                               {
                                 tickets[w.currentTicketId]
                                   .landCertificateDigital
@@ -590,7 +590,7 @@ export default function Teller() {
         {/* Ticket History Sections */}
         {selectedWindowId !== null && (
           <div className="w-full space-y-6">
-            <h2 className="text-base sm:text-lg md:text-xl font-semibold text-foreground truncate">
+            <h2 className="text-lg font-semibold text-foreground truncate">
               Ticket History for{" "}
               <span className="text-primary">
                 {
@@ -600,7 +600,7 @@ export default function Teller() {
               </span>
             </h2>
 
-            <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-1 lg:grid-cols-2 w-full">
+            <div className="grid w-full grid-cols-1 gap-4 lg:grid-cols-2">
               <TicketSection
                 items={tabItems.completed}
                 title="Today's Completed"

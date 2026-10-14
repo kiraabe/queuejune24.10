@@ -220,7 +220,7 @@ export function ArchivedTicketsHistory() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-blue-600">
+            <div className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground">
               {stats.total}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -236,7 +236,7 @@ export function ArchivedTicketsHistory() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-600">
+            <div className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground">
               {stats.today}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -252,7 +252,7 @@ export function ArchivedTicketsHistory() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-purple-600">
+            <div className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground">
               {formatTime(stats.avgTime)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -323,7 +323,7 @@ export function ArchivedTicketsHistory() {
             </Alert>
           ) : filteredTickets.length === 0 ? (
             <div className="text-center py-12">
-              <Archive className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+              <Archive className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-lg font-medium">{t("archiever.history.empty")}</p>
               <p className="text-sm text-muted-foreground">
                 {searchTerm
@@ -342,7 +342,7 @@ export function ArchivedTicketsHistory() {
                   return (
                     <div
                       key={ticket.id}
-                      className="p-4 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors"
+                      className="rounded-lg border border-border bg-card p-4 transition-colors hover:bg-muted"
                     >
                       {/* Main content grid */}
                       <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-start md:items-center mb-3 md:mb-0">
@@ -352,7 +352,7 @@ export function ArchivedTicketsHistory() {
                             {t("archiever.history.details")}
                           </p>
                           <div className="flex flex-col gap-1">
-                            <p className="text-lg font-bold text-blue-600">
+                            <p className="text-lg font-semibold text-primary">
                               {ticket.code}
                             </p>
                             <p className="text-sm text-muted-foreground">
@@ -447,7 +447,7 @@ export function ArchivedTicketsHistory() {
                       </div>
 
                       {/* Processing Time - shown below on mobile */}
-                      <div className="md:hidden mt-3 pt-3 border-t flex items-center gap-2">
+                      <div className="md:hidden mt-3 pt-3 border-t border-border flex items-center gap-2">
                         <Clock className="h-4 w-4 text-muted-foreground" />
                         <div>
                           <p className="text-xs text-muted-foreground">
@@ -465,7 +465,7 @@ export function ArchivedTicketsHistory() {
 
               {/* Pagination Controls */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between border-t pt-4">
+                <div className="flex items-center justify-between border-t border-border pt-4">
                   <div className="text-sm text-muted-foreground">
                     {t("archiever.history.pagingInfo", {
                       start: startIndex + 1,

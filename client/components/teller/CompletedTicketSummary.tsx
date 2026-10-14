@@ -1,14 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
 import type { Ticket } from "@shared/api";
 import { apiFetch } from "@/lib/api";
-import {
-  ArrowRight,
-  Clock,
-  User,
-  Briefcase,
-  Activity,
-  CheckCircle2,
-} from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowRight, Activity, CheckCircle2 } from "lucide-react";
+import { toneSuccess, toneWarning } from "./status-tones";
 
 interface EmployeeStep {
   id: string;
@@ -55,10 +49,8 @@ export function CompletedTicketSummary({
 
   if (isPending) {
     return (
-      <div className="mt-3 rounded-lg bg-gradient-to-br from-green-50 to-emerald-50 p-3 dark:from-green-950/30 dark:to-emerald-950/30 border border-green-200/50 dark:border-green-900/50">
-        <p className="text-xs text-green-700 dark:text-green-300">
-          Loading workflow...
-        </p>
+      <div className="mt-3 rounded-md border border-border bg-muted/40 p-3">
+        <p className="text-xs text-muted-foreground">Loading workflow...</p>
       </div>
     );
   }
@@ -68,12 +60,13 @@ export function CompletedTicketSummary({
   if (!items || items.length === 0) {
     // Show a fallback message when there's no workflow data (e.g., direct completion)
     return (
-      <div className="mt-3 rounded-lg bg-gradient-to-br from-amber-50 to-orange-50 p-3 dark:from-amber-950/30 dark:to-orange-950/30 border border-amber-200/50 dark:border-amber-900/50">
-        <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
-          ✓ Completed
+      <div className={`mt-3 rounded-md border p-3 ${toneWarning}`}>
+        <p className="flex items-center gap-1.5 text-xs font-medium">
+          <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+          Completed
         </p>
         {ticket.completedAt && (
-          <p className="text-xs text-amber-600/70 dark:text-amber-400/70 mt-1">
+          <p className="mt-1 text-xs opacity-80">
             {new Date(ticket.completedAt).toLocaleString()}
           </p>
         )}
@@ -104,35 +97,35 @@ export function CompletedTicketSummary({
   }, 0);
 
   return (
-    <div className="mt-3 space-y-2 rounded-lg bg-gradient-to-br from-green-50 to-emerald-50 p-3 dark:from-green-950/30 dark:to-emerald-950/30 border border-green-200/50 dark:border-green-900/50">
+    <div
+      className={`mt-3 space-y-2 rounded-md border p-3 ${toneSuccess}`}
+    >
       {/* Flow visualization */}
       <div className="space-y-2">
         {items.map((step, index) => (
           <div key={step.id}>
-            <div className="flex items-center gap-2 rounded-lg bg-white/40 dark:bg-black/20 p-2">
-              <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 rounded-md bg-background/70 p-2">
+              <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
-                  <Activity className="h-3.5 w-3.5 text-green-600 dark:text-green-400 flex-shrink-0" />
-                  <span className="text-xs font-semibold text-green-700 dark:text-green-300 truncate">
+                  <Activity className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate text-xs font-semibold">
                     {step.employeeName}
                   </span>
                 </div>
                 {step.startedAt && (
-                  <p className="text-xs text-green-600 dark:text-green-400 mt-0.5 ml-4">
-                    <span className="text-green-500 dark:text-green-500">
-                      ↳
-                    </span>{" "}
+                  <p className="ml-4 mt-0.5 text-xs text-muted-foreground">
+                    <span className="opacity-70">↳</span>{" "}
                     {formatDateTime(step.startedAt)}
                   </p>
                 )}
               </div>
-              <span className="text-xs font-semibold text-green-600 dark:text-green-400 flex-shrink-0">
+              <span className="shrink-0 text-xs font-semibold">
                 {formatTime(step.durationSeconds)}
               </span>
             </div>
             {index < items.length - 1 && (
               <div className="flex justify-center py-1">
-                <ArrowRight className="h-3.5 w-3.5 text-green-400 dark:text-green-600 rotate-90" />
+                <ArrowRight className="h-3.5 w-3.5 rotate-90 text-muted-foreground" />
               </div>
             )}
           </div>
@@ -140,9 +133,9 @@ export function CompletedTicketSummary({
       </div>
 
       {/* Summary stats */}
-      <div className="mt-2 flex items-center gap-2 border-t border-green-200/50 dark:border-green-900/50 pt-2">
-        <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400 flex-shrink-0" />
-        <span className="text-xs text-green-700 dark:text-green-300 font-medium">
+      <div className="mt-2 flex items-center gap-2 border-t border-current/20 pt-2">
+        <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+        <span className="text-xs font-medium">
           {items.length} employee{items.length !== 1 ? "s" : ""} • Total:{" "}
           <span className="font-semibold">{formatTime(totalDuration)}</span>
         </span>

@@ -194,45 +194,45 @@ function TicketPreview({
   const noteLines: string[] = [];
 
   return (
-    <div className="rounded-lg sm:rounded-2xl border border-primary/40 bg-primary/10 p-3 sm:p-4 md:p-5 text-sm sm:text-base text-primary">
-      <p className="font-semibold text-xs sm:text-sm uppercase tracking-wide">
+    <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 md:p-5 text-sm text-foreground">
+      <p className="font-semibold text-xs sm:text-sm uppercase tracking-wide text-primary">
         {t("reception.preview")}
       </p>
       {!ticket && (
-        <p className="mt-2 text-primary/80 text-sm">
+        <p className="mt-2 text-sm text-muted-foreground">
           {t("reception.previewDesc")}
         </p>
       )}
-      <div className="mt-4 grid gap-2 sm:gap-3 text-primary/80 text-sm">
+      <div className="mt-4 grid gap-3 text-sm text-muted-foreground">
         <p>
-          <span className="font-semibold text-primary">{t("reception.orderNo")}</span>{" "}
+          <span className="font-medium text-muted-foreground">{t("reception.orderNo")}</span>{" "}
           <span className="font-mono text-base sm:text-lg font-bold text-primary">
             {display.code}
           </span>
         </p>
         {display.ownerName && (
           <p>
-            <span className="font-semibold text-primary">{t("reception.owner")}</span>{" "}
-            <span className="text-primary/90">{display.ownerName}</span>
+            <span className="font-medium text-muted-foreground">{t("reception.owner")}</span>{" "}
+            <span className="text-foreground">{display.ownerName}</span>
           </p>
         )}
         {display.woreda && (
           <p>
-            <span className="font-semibold text-primary">{t("reception.woreda")}</span>{" "}
-            <span className="text-primary/90">{display.woreda}</span>
+            <span className="font-medium text-muted-foreground">{t("reception.woreda")}</span>{" "}
+            <span className="text-foreground">{display.woreda}</span>
           </p>
         )}
         <p>
-          <span className="font-semibold text-primary">{t("reception.service")}</span>{" "}
-          <span className="text-primary/90">{selectedServiceLabel}</span>
+          <span className="font-medium text-muted-foreground">{t("reception.service")}</span>{" "}
+          <span className="text-foreground">{selectedServiceLabel}</span>
         </p>
         {display.selectedServiceNames &&
           display.selectedServiceNames.length > 0 && (
             <div>
-              <p className="font-semibold text-primary mb-1">
+              <p className="font-medium text-muted-foreground mb-1">
                 {t("reception.services")}
               </p>
-              <ul className="ml-4 list-disc space-y-1 text-primary/90 text-sm">
+              <ul className="ml-4 list-disc space-y-1 text-foreground text-sm">
                 {display.selectedServiceNames.map((name) => (
                   <li key={name}>{name}</li>
                 ))}
@@ -240,10 +240,10 @@ function TicketPreview({
             </div>
           )}
         {(details.landCertificateKarta || details.landCertificateDigital) && (
-          <div className="space-y-1 text-primary/90 text-sm">
+          <div className="space-y-1 text-foreground text-sm">
             {details.landCertificateKarta && (
               <p>
-                <span className="font-semibold text-primary">
+                <span className="font-medium text-muted-foreground">
                   karta (ካርታ) ser no.:
                 </span>{" "}
                 {details.landCertificateKarta}
@@ -251,7 +251,7 @@ function TicketPreview({
             )}
             {details.landCertificateDigital && (
               <p>
-                <span className="font-semibold text-primary">
+                <span className="font-medium text-muted-foreground">
                   karta (ካርታ) No.:
                 </span>{" "}
                 {details.landCertificateDigital}
@@ -261,8 +261,8 @@ function TicketPreview({
         )}
         {noteLines.length > 0 && (
           <div>
-            <p className="font-semibold text-primary mb-1">Notes:</p>
-            <ul className="ml-4 list-disc space-y-1 text-primary/90">
+            <p className="font-medium text-muted-foreground mb-1">Notes:</p>
+            <ul className="ml-4 list-disc space-y-1 text-foreground">
               {noteLines.map((line) => (
                 <li key={line}>{line}</li>
               ))}
@@ -270,8 +270,8 @@ function TicketPreview({
           </div>
         )}
         {ticket && trackingUrl && (
-          <div className="space-y-2 pt-2 border-t border-primary/20">
-            <p className="font-semibold text-primary text-xs sm:text-sm">
+          <div className="space-y-2 pt-2 border-t border-border">
+            <p className="font-medium text-muted-foreground text-xs sm:text-sm">
               {t("reception.trackingUrl")}
             </p>
             <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2">
@@ -279,7 +279,7 @@ function TicketPreview({
                 href={trackingUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="break-all text-xs sm:text-sm text-primary/90 underline hover:text-primary flex-1 sm:flex-initial"
+                className="break-all text-xs sm:text-sm text-primary underline underline-offset-4 hover:text-primary/80 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring flex-1 sm:flex-initial"
               >
                 {trackingUrl}
               </a>
@@ -303,7 +303,7 @@ function TicketPreview({
                     }
                   }
                 }}
-                className="shrink-0 rounded bg-primary/10 px-3 sm:px-2 py-2 sm:py-1 text-xs font-medium hover:bg-primary/20 transition-colors active:bg-primary/30"
+                className="shrink-0 rounded-md bg-primary/10 px-3 sm:px-2 py-2 sm:py-1 text-xs font-medium text-primary hover:bg-primary/20 transition-colors active:bg-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {t("reception.copy")}
               </button>
@@ -316,7 +316,7 @@ function TicketPreview({
               <img
                 src={qrDataUrl}
                 alt={`QR code for ticket ${ticket.code}`}
-                className="h-32 sm:h-40 md:h-48 w-32 sm:w-40 md:w-48 rounded-lg bg-white p-2 shadow-inner shadow-primary/30"
+                className="h-32 sm:h-40 md:h-48 w-32 sm:w-40 md:w-48 rounded-md border border-border bg-white p-2"
               />
             ) : (
               <div className="flex items-center gap-2 text-primary">
@@ -328,7 +328,7 @@ function TicketPreview({
             )}
           </div>
         ) : (
-          <div className="rounded-lg sm:rounded-xl border border-primary/30 bg-white/70 p-3 text-primary/90">
+          <div className="rounded-md border border-dashed border-border bg-background p-3 text-muted-foreground">
             <p className="text-xs sm:text-sm">
               {t("reception.qrPlaceholder")}
             </p>
@@ -529,18 +529,18 @@ export default function Reception() {
       title={t("reception.title")}
       className="lg:grid-cols-1"
     >
-      <section className="w-full grid gap-8 sm:gap-12 py-4 sm:py-6">
-        <Card className="w-full border-border/60 bg-card/90 p-4 sm:p-6 md:p-8 shadow-2xl">
+      <section className="w-full grid gap-6 py-4 md:py-6">
+        <Card className="w-full">
           <CardHeader className="space-y-2 mb-6">
-            <CardTitle className="flex items-center gap-2 text-xl sm:text-2xl">
-              <ClipboardSignature className="h-5 sm:h-6 w-5 sm:w-6 text-primary flex-shrink-0" />
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <ClipboardSignature className="h-5 w-5 text-primary shrink-0" />
               <span>{t("reception.issueTicket")}</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <form className="space-y-6" onSubmit={handleSubmit}>
               {/* Name and Woreda fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="owner-name" className="text-sm font-medium">
                     {t("reception.ownerLabel")}
@@ -574,7 +574,7 @@ export default function Reception() {
               </div>
 
               {/* Land Certificate fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 border-t border-border/40 pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-border pt-6">
                 <div className="grid gap-2">
                   <Label
                     htmlFor="land-cert-karta"
@@ -615,7 +615,7 @@ export default function Reception() {
 
               {/* Service Category section */}
               {serviceCategories.length > 0 && (
-                <div className="space-y-3 border-t border-border/40 pt-6">
+                <div className="space-y-3 border-t border-border pt-6">
                   <Label className="text-sm font-medium">
                     {t("reception.categoryLabel")}
                   </Label>
@@ -639,7 +639,7 @@ export default function Reception() {
 
               {/* Services section */}
               {selectedCategory && (
-                <div className="space-y-3 border-t border-border/40 pt-6">
+                <div className="space-y-3 border-t border-border pt-6">
                   <Label className="text-sm font-medium">{t("reception.servicesLabel")}</Label>
                   {loadingCategoryServices ? (
                     <div className="flex items-center gap-2 text-muted-foreground">
@@ -654,7 +654,7 @@ export default function Reception() {
                       </AlertDescription>
                     </Alert>
                   ) : (
-                    <div className="border border-border/40 rounded-lg p-4">
+                    <div className="rounded-md border border-border p-4">
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {categoryServices.map((svc) => (
                           <div key={svc.id} className="flex items-start gap-3">
@@ -691,7 +691,7 @@ export default function Reception() {
               {/* Submit button */}
               <Button
                 type="submit"
-                className="h-11 sm:h-12 w-full text-sm sm:text-base shadow-lg shadow-primary/20"
+                className="h-11 sm:h-12 w-full text-sm sm:text-base"
                 disabled={!isFormValid || createTicket.isPending}
               >
                 {createTicket.isPending ? (
@@ -711,16 +711,13 @@ export default function Reception() {
         </Card>
       </section>
 
-      <section className="w-full border-t border-border/60 bg-foreground/5 py-8 sm:py-12 md:py-16 -mx-[1rem] sm:-mx-[1.5rem] lg:-mx-[2rem] px-4 sm:px-6 lg:px-8">
-        <div className="grid gap-4 sm:gap-6 md:gap-8 lg:grid-cols-3">
+      <section className="w-full border-t border-border bg-muted py-8 md:py-12 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
+        <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
           {RECEPTION_GAINS.map((item) => (
-            <Card
-              key={item.titleKey}
-              className="border-border/60 bg-card/80 p-4 sm:p-6 shadow-md shadow-primary/5 hover:bg-card/90 transition-colors"
-            >
+            <Card key={item.titleKey}>
               <CardHeader className="space-y-3 mb-4">
-                <div className="inline-flex h-10 sm:h-12 w-10 sm:w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary flex-shrink-0">
-                  <item.icon className="h-5 sm:h-6 w-5 sm:w-6" />
+                <div className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary shrink-0">
+                  <item.icon className="h-5 w-5" />
                 </div>
                 <CardTitle className="text-base sm:text-lg">
                   {t(item.titleKey as any)}

@@ -2,6 +2,13 @@ import type { Ticket, CaseHold } from "@shared/api";
 import { useState, useEffect } from "react";
 import { X, ChevronDown } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import {
+  toneDanger,
+  toneInfo,
+  toneNeutral,
+  toneSuccess,
+  toneWarning,
+} from "./status-tones";
 
 interface ProcessStep {
   id: string;
@@ -85,17 +92,16 @@ export function ProcessFlowChart({
   const getActionBadgeColor = (action: string) => {
     switch (action) {
       case "Completed":
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
+        return toneSuccess;
       case "Proceeded":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
       case "Serving":
-        return "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300";
+        return toneInfo;
       case "On Hold":
-        return "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300";
+        return toneWarning;
       case "Skipped":
-        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
+        return toneDanger;
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300";
+        return toneNeutral;
     }
   };
 
@@ -136,10 +142,10 @@ export function ProcessFlowChart({
                 onClick={() =>
                   setSelectedStepId(selectedStepId === step.id ? null : step.id)
                 }
-                className={`flex items-center gap-2 px-3 py-2 rounded border transition-all whitespace-nowrap text-xs flex-shrink-0 cursor-pointer ${
+                className={`flex shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap rounded-md border px-3 py-2 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   selectedStepId === step.id
-                    ? "border-primary bg-primary/10 shadow-md"
-                    : "border-border/50 bg-background/50 hover:border-primary/50 hover:bg-background/70"
+                    ? "border-primary bg-primary/5"
+                    : "border-border bg-background hover:bg-muted/50"
                 }`}
               >
                 <span className="font-semibold text-muted-foreground">
@@ -150,7 +156,7 @@ export function ProcessFlowChart({
                 </span>
                 <span className="text-muted-foreground">{step.duration}</span>
                 <span
-                  className={`px-1.5 py-0.5 rounded text-xs font-medium ${getActionBadgeColor(step.action)}`}
+                  className={`rounded-full border px-2 py-0.5 text-xs font-medium ${getActionBadgeColor(step.action)}`}
                 >
                   {step.action}
                 </span>
@@ -169,7 +175,7 @@ export function ProcessFlowChart({
 
       {/* Step Details Panel */}
       {selectedStep && (
-        <div className="border-t border-border pt-3 bg-background/50 rounded-lg p-3 animate-in fade-in slide-in-from-bottom-2 duration-200">
+        <div className="rounded-md border border-border bg-muted/30 p-3 animate-in fade-in slide-in-from-bottom-2 duration-200">
           <div className="flex items-start justify-between mb-3">
             <div>
               <h4 className="font-semibold text-foreground">
@@ -183,7 +189,7 @@ export function ProcessFlowChart({
             </div>
             <button
               onClick={() => setSelectedStepId(null)}
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              className="rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label="Close"
             >
               <X className="h-4 w-4" />
@@ -195,7 +201,7 @@ export function ProcessFlowChart({
             <div>
               <p className="text-muted-foreground font-semibold mb-1">Status</p>
               <p
-                className={`font-medium ${getActionBadgeColor(selectedStep.action)} px-2 py-1 rounded inline-block`}
+                className={`inline-block rounded-full border px-2 py-0.5 font-medium ${getActionBadgeColor(selectedStep.action)}`}
               >
                 {selectedStep.action}
               </p>
@@ -262,11 +268,11 @@ export function ProcessFlowChart({
 
           {/* Skip Reason Section */}
           {selectedStep.action === "Skipped" && selectedStep.remark && (
-            <div className="mt-3 p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg">
-              <p className="text-xs font-semibold text-red-800 dark:text-red-300 mb-2">
+            <div className={`mt-3 rounded-md border p-3 ${toneDanger}`}>
+              <p className="mb-2 text-xs font-semibold">
                 Skip Reason / Remark
               </p>
-              <p className="text-xs text-red-700 dark:text-red-400 break-words whitespace-pre-wrap">
+              <p className="whitespace-pre-wrap break-words text-xs">
                 {selectedStep.remark}
               </p>
             </div>
@@ -279,7 +285,7 @@ export function ProcessFlowChart({
         <div className="border-t border-border pt-3">
           <button
             onClick={() => setActionsExpanded(!actionsExpanded)}
-            className="flex items-center justify-between w-full px-3 py-2 rounded hover:bg-background/50 transition-colors"
+            className="flex w-full items-center justify-between rounded-md px-3 py-2 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <span className="text-xs font-semibold text-foreground">
               Actions ({holds.length})
@@ -293,9 +299,9 @@ export function ProcessFlowChart({
 
           {/* Actions Table */}
           {actionsExpanded && (
-            <div className="mt-3 bg-background/50 rounded-lg border border-border/50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="mt-3 overflow-hidden rounded-md border border-border bg-background animate-in fade-in slide-in-from-top-2 duration-200">
               {/* Table Header */}
-              <div className="grid grid-cols-5 gap-4 px-4 py-3 bg-muted/30 border-b border-border/30 text-xs font-semibold text-foreground sticky top-0">
+              <div className="grid grid-cols-5 gap-4 px-4 py-3 bg-muted/50 border-b border-border text-xs font-semibold text-foreground sticky top-0">
                 <div>Held By</div>
                 <div>Subject</div>
                 <div className="text-center">Start</div>
@@ -313,7 +319,7 @@ export function ProcessFlowChart({
                   holds.map((hold) => (
                     <div
                       key={hold.id}
-                      className="grid grid-cols-5 gap-4 px-4 py-3 text-xs hover:bg-background/70 transition-colors"
+                      className="grid grid-cols-5 gap-4 px-4 py-3 text-xs hover:bg-muted/40 transition-colors"
                     >
                       <div className="font-medium text-foreground truncate">
                         {userMap?.get(hold.heldByUserId) ||

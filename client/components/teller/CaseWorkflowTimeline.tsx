@@ -1,16 +1,22 @@
-import { Ticket } from "@shared/api";
+import type { Ticket } from "@shared/api";
 import { apiFetch } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 import {
-  CheckCircle2,
   ArrowRight,
   Clock,
   User,
   Briefcase,
+  CheckCircle2,
   AlertCircle,
   Monitor,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  toneInfo,
+  toneNeutral,
+  toneSuccess,
+  toneWarning,
+} from "./status-tones";
 
 interface EmployeeStep {
   id: string;
@@ -55,9 +61,9 @@ export function CaseWorkflowTimeline({
 
   if (isPending) {
     return (
-      <Card className="mt-4 border-border/70 bg-card/80">
+      <Card className="mt-4">
         <CardHeader>
-          <CardTitle className="text-sm">Case Workflow Timeline</CardTitle>
+          <CardTitle>Case Workflow Timeline</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-4">
@@ -72,21 +78,19 @@ export function CaseWorkflowTimeline({
 
   if (!items || items.length === 0) {
     return (
-      <Card className="mt-4 border-border/70 bg-card/80">
+      <Card className="mt-4">
         <CardHeader>
-          <CardTitle className="text-sm">Case Workflow Timeline</CardTitle>
+          <CardTitle>Case Workflow Timeline</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/50 p-4">
+          <div className={`rounded-md border p-4 ${toneWarning}`}>
             <div className="flex items-start gap-3">
-              <div className="text-amber-600 dark:text-amber-400 mt-0.5">
-                <AlertCircle className="h-4 w-4" />
-              </div>
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
               <div>
-                <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                <p className="text-sm font-medium">
                   No employee workflow data available
                 </p>
-                <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                <p className="mt-1 text-xs opacity-90">
                   This case was completed directly without going through the
                   employee workflow.
                   {ticket.completedAt && (
@@ -129,41 +133,15 @@ export function CaseWorkflowTimeline({
     });
   };
 
-  const formatFullDateTime = (timestamp: number) => {
-    if (!timestamp) return "—";
-    const date = new Date(timestamp);
-    return date.toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    });
-  };
-
-  const getActionColor = (action: string) => {
+  const getActionTone = (action: string) => {
     switch (action) {
       case "Started":
-        return "bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800";
       case "Proceeded":
-        return "bg-purple-50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-800";
+        return toneInfo;
       case "Completed":
-        return "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800";
+        return toneSuccess;
       default:
-        return "bg-gray-50 dark:bg-gray-950/20 border-gray-200 dark:border-gray-800";
-    }
-  };
-
-  const getActionIcon = (action: string) => {
-    switch (action) {
-      case "Completed":
-        return (
-          <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
-        );
-      default:
-        return (
-          <CheckCircle2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-        );
+        return toneNeutral;
     }
   };
 
@@ -197,70 +175,58 @@ export function CaseWorkflowTimeline({
   }
 
   return (
-    <Card className="mt-4 border-border/70 bg-gradient-to-br from-card via-card to-card/90">
+    <Card className="mt-4">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base">Case Workflow Timeline</CardTitle>
-          <div className="rounded-full bg-primary/10 px-3 py-1">
-            <p className="text-xs font-semibold text-primary">
-              {items.length} step{items.length !== 1 ? "s" : ""} •{" "}
-              {formatTime(totalDuration)}
-            </p>
-          </div>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <CardTitle>Case Workflow Timeline</CardTitle>
+          <span className="rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-semibold text-primary">
+            {items.length} step{items.length !== 1 ? "s" : ""} •{" "}
+            {formatTime(totalDuration)}
+          </span>
         </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           {items.map((step, index) => (
             <div key={step.id}>
-              <div
-                className={`rounded-lg border-2 p-4 transition-all hover:shadow-md ${getActionColor(
-                  step.status,
-                )}`}
-              >
+              <div className={`rounded-lg border p-4 ${getActionTone(step.status)}`}>
                 <div className="flex items-start gap-4">
-                  <div className="mt-1 flex-shrink-0">
-                    {getActionIcon(step.status)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-semibold text-foreground truncate">
-                            {step.employeeName || "Unknown Employee"}
-                          </p>
-                          <span
-                            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap ${
-                              step.status === "Completed"
-                                ? "bg-green-200 text-green-900 dark:bg-green-900 dark:text-green-100"
-                                : step.status === "Proceeded"
-                                  ? "bg-purple-200 text-purple-900 dark:bg-purple-900 dark:text-purple-100"
-                                  : step.status === "Retrieved"
-                                    ? "bg-cyan-200 text-cyan-900 dark:bg-cyan-900 dark:text-cyan-100"
-                                    : "bg-blue-200 text-blue-900 dark:bg-blue-900 dark:text-blue-100"
-                            }`}
-                          >
-                            {step.status}
-                          </span>
-                          {step.isTeller && step.windowId && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300 whitespace-nowrap">
-                              <Monitor className="h-3 w-3" />
-                              Window {step.windowId}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground flex items-center gap-1 mt-2">
-                          <Briefcase className="h-3 w-3 flex-shrink-0" />
-                          <span className="truncate">
-                            {step.jobTitle || "No Title"}
-                          </span>
-                        </p>
-                      </div>
+                  <CheckCircle2
+                    className={`mt-1 h-5 w-5 shrink-0 ${
+                      step.status === "Completed"
+                        ? "text-emerald-700 dark:text-emerald-400"
+                        : "text-primary"
+                    }`}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="truncate font-semibold text-foreground">
+                        {step.employeeName || "Unknown Employee"}
+                      </p>
+                      <span
+                        className={`inline-flex whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-medium ${
+                          step.status === "Completed" ? toneSuccess : toneInfo
+                        }`}
+                      >
+                        {step.status}
+                      </span>
+                      {step.isTeller && step.windowId && (
+                        <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-primary/20 bg-primary/5 px-2 py-0.5 text-xs font-medium text-primary">
+                          <Monitor className="h-3 w-3" />
+                          Window {step.windowId}
+                        </span>
+                      )}
                     </div>
+                    <p className="mt-2 flex items-center gap-1 text-sm text-muted-foreground">
+                      <Briefcase className="h-3 w-3 shrink-0" />
+                      <span className="truncate">
+                        {step.jobTitle || "No Title"}
+                      </span>
+                    </p>
 
-                    <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                      <div className="flex items-center gap-2 bg-background/40 rounded px-2 py-1.5">
-                        <Clock className="h-4 w-4 text-primary flex-shrink-0" />
+                    <div className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                      <div className="flex items-center gap-2 rounded-md bg-background/60 px-2 py-1.5">
+                        <Clock className="h-4 w-4 shrink-0 text-primary" />
                         <div>
                           <p className="text-xs text-muted-foreground">
                             Duration
@@ -270,13 +236,13 @@ export function CaseWorkflowTimeline({
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 bg-background/40 rounded px-2 py-1.5">
-                        <User className="h-4 w-4 text-primary flex-shrink-0" />
+                      <div className="flex items-center gap-2 rounded-md bg-background/60 px-2 py-1.5">
+                        <User className="h-4 w-4 shrink-0 text-primary" />
                         <div>
                           <p className="text-xs text-muted-foreground">
                             Started At
                           </p>
-                          <p className="font-semibold text-foreground text-xs">
+                          <p className="text-xs font-semibold text-foreground">
                             {formatDateTime(step.startedAt)}
                           </p>
                         </div>
@@ -297,43 +263,37 @@ export function CaseWorkflowTimeline({
 
               {index < items.length - 1 && (
                 <div className="flex justify-center py-3">
-                  <div className="relative flex items-center">
-                    <ArrowRight className="h-5 w-5 rotate-90 text-primary/40" />
-                  </div>
+                  <ArrowRight className="h-5 w-5 rotate-90 text-muted-foreground" />
                 </div>
               )}
             </div>
           ))}
         </div>
 
-        <div className="mt-6 rounded-lg bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20 p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">
-                Total Participants
-              </p>
-              <p className="text-2xl font-bold text-foreground mt-1">
-                {items.length}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">
-                Total Duration
-              </p>
-              <p className="text-2xl font-bold text-foreground mt-1">
-                {formatTime(totalDuration)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">
-                Case Status
-              </p>
-              <div className="flex items-center gap-1 mt-1">
-                <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
-                <span className="font-bold text-green-600 dark:text-green-400">
-                  Completed
-                </span>
-              </div>
+        <div className="mt-6 grid grid-cols-1 gap-4 rounded-lg border border-border bg-muted/40 p-4 sm:grid-cols-3">
+          <div>
+            <p className="text-xs font-medium text-muted-foreground">
+              Total Participants
+            </p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
+              {items.length}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-medium text-muted-foreground">
+              Total Duration
+            </p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
+              {formatTime(totalDuration)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-medium text-muted-foreground">
+              Case Status
+            </p>
+            <div className="mt-1 flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400">
+              <CheckCircle2 className="h-5 w-5 shrink-0" />
+              <span className="text-base font-semibold">Completed</span>
             </div>
           </div>
         </div>

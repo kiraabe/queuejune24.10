@@ -128,7 +128,7 @@ export function GlobalQueuePanel({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-blue-600">
+            <div className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground">
               {waitingTickets.length}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -144,7 +144,7 @@ export function GlobalQueuePanel({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-amber-600">
+            <div className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground">
               {lockedTickets.length}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -186,9 +186,9 @@ export function GlobalQueuePanel({
             </div>
           ) : waitingTickets.length === 0 ? (
             <div className="text-center py-12">
-              <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+              <div className="h-12 w-12 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center mx-auto mb-4">
                 <svg
-                  className="h-6 w-6 text-green-600"
+                  className="h-6 w-6 text-emerald-700"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -212,19 +212,19 @@ export function GlobalQueuePanel({
                 <div
                   key={ticket.id}
                   className={cn(
-                    "p-4 rounded-lg border-2 transition-all",
+                    "rounded-lg border bg-card p-4 transition-colors",
                     selectedTicketId === ticket.id
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-gray-200 hover:border-gray-300 hover:bg-gray-50",
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:bg-muted",
                   )}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="outline" className="text-sm font-bold">
+                        <Badge variant="outline" className="text-sm font-semibold">
                           #{ticket.queuePosition}
                         </Badge>
-                        <p className="text-xl font-bold text-blue-600">
+                        <p className="text-xl font-semibold text-primary">
                           {ticket.code}
                         </p>
                       </div>
@@ -311,14 +311,14 @@ export function GlobalQueuePanel({
                   key={ticket.id}
                   onClick={() => onTicketSelected(ticket.id, ticket.code)}
                   className={cn(
-                    "w-full flex items-center justify-between p-3 rounded-lg border transition-all text-left cursor-pointer",
+                    "w-full flex items-center justify-between p-3 rounded-lg border transition-colors text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     selectedTicketId === ticket.id
-                      ? "border-amber-500 bg-amber-50"
-                      : "border-amber-200 bg-amber-50 hover:border-amber-400 hover:bg-amber-100",
+                      ? "border-amber-400 bg-amber-100 text-amber-800"
+                      : "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100",
                   )}
                 >
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <Lock className="h-4 w-4 text-amber-600 flex-shrink-0" />
+                    <Lock className="h-4 w-4 text-amber-800 shrink-0" />
                     <div className="min-w-0">
                       <p className="font-semibold text-sm">{ticket.code}</p>
                       <p className="text-xs text-muted-foreground">

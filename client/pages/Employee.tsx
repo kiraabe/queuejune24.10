@@ -10,8 +10,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { CheckCircle2, Package, ArrowRight } from "lucide-react";
+import { CheckCircle2, Package, ArrowRight, Pause } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useTranslation } from "@/hooks/use-translation";
 import { toast } from "sonner";
@@ -58,6 +59,19 @@ function calculateDuration(
   if (!startTime || !endTime) return null;
   return Math.round((endTime - startTime) / 1000);
 }
+
+const toneClasses = {
+  success:
+    "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300",
+  warning:
+    "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300",
+  danger:
+    "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300",
+  info: "border-primary/20 bg-primary/5 text-primary",
+  neutral: "border-border bg-muted text-muted-foreground",
+} as const;
+
+type Tone = keyof typeof toneClasses;
 
 interface TicketRowProps {
   ticket: Ticket;
@@ -145,19 +159,30 @@ const CaseHistoryRow = ({ ticket, userMap }: CaseHistoryRowProps) => {
       : isProceed
         ? "Forwarded"
         : "In Progress";
-  const statusColor = isComplete
-    ? "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300"
+  const statusTone: Tone = isComplete
+    ? "success"
     : hasActiveHold
-      ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300"
+      ? "warning"
       : isProceed
-        ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
-        : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300";
+        ? "neutral"
+        : "info";
+
+  const toggleDetails = () => setShowDetails((open) => !open);
 
   return (
     <div className="space-y-2">
       <div
-        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 rounded-lg border border-border/60 bg-card/50 p-3 sm:p-4 hover:bg-card/80 transition-colors cursor-pointer"
-        onClick={() => setShowDetails(!showDetails)}
+        role="button"
+        tabIndex={0}
+        aria-expanded={showDetails}
+        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 rounded-lg border border-border p-3 sm:p-4 hover:bg-muted/50 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        onClick={toggleDetails}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            toggleDetails();
+          }
+        }}
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2">
@@ -165,8 +190,8 @@ const CaseHistoryRow = ({ ticket, userMap }: CaseHistoryRowProps) => {
               Ticket {ticket.code}
             </h3>
             <Badge
-              className={`text-xs whitespace-nowrap ${statusColor}`}
-              variant="secondary"
+              className={cn("text-xs whitespace-nowrap", toneClasses[statusTone])}
+              variant="outline"
             >
               {status}
             </Badge>
@@ -231,23 +256,23 @@ const CaseHistoryRow = ({ ticket, userMap }: CaseHistoryRowProps) => {
                 </div>
               )}
             {(ticket.landCertificateKarta || ticket.landCertificateDigital) && (
-              <div className="mt-2 pt-2 border-t border-border/40 space-y-1">
+              <div className="mt-2 pt-2 border-t border-border space-y-1">
                 {ticket.landCertificateKarta && (
-                  <div className="text-xs bg-blue-50 dark:bg-blue-950/30 p-2 rounded">
-                    <span className="font-medium text-blue-700 dark:text-blue-400">
+                  <div className="text-xs bg-primary/5 p-2 rounded-md">
+                    <span className="font-medium text-primary">
                       Land Cert (ካርታ):
                     </span>{" "}
-                    <span className="text-blue-600 dark:text-blue-300">
+                    <span className="text-foreground">
                       {ticket.landCertificateKarta}
                     </span>
                   </div>
                 )}
                 {ticket.landCertificateDigital && (
-                  <div className="text-xs bg-green-50 dark:bg-green-950/30 p-2 rounded">
-                    <span className="font-medium text-green-700 dark:text-green-400">
+                  <div className="text-xs bg-emerald-50 dark:bg-emerald-950/40 p-2 rounded-md">
+                    <span className="font-medium text-emerald-700 dark:text-emerald-300">
                       Cert (ካርታ):
                     </span>{" "}
-                    <span className="text-green-600 dark:text-green-300">
+                    <span className="text-foreground">
                       {ticket.landCertificateDigital}
                     </span>
                   </div>
@@ -267,8 +292,8 @@ const CaseHistoryRow = ({ ticket, userMap }: CaseHistoryRowProps) => {
               </p>
             </div>
             {sumEmployeesDuration != null && (
-              <div className="border-t pt-2">
-                <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+              <div className="border-t border-border pt-2">
+                <div className="text-sm font-semibold text-primary">
                   {formatDuration(sumEmployeesDuration)}
                 </div>
                 <p className="text-xs text-muted-foreground">Employees time</p>
@@ -285,7 +310,7 @@ const CaseHistoryRow = ({ ticket, userMap }: CaseHistoryRowProps) => {
 
       {/* Performance Details - Workflow Chain */}
       {showDetails && (performanceDetails.length > 0 || holds.length > 0) && (
-        <div className="ml-0 sm:ml-4 space-y-3 border-l-2 border-blue-200 dark:border-blue-900 pl-4">
+        <div className="ml-0 sm:ml-4 space-y-3 border-l-2 border-border pl-4">
           <p className="text-xs font-semibold text-foreground uppercase tracking-wide">
             Workflow Chain
           </p>
@@ -298,7 +323,7 @@ const CaseHistoryRow = ({ ticket, userMap }: CaseHistoryRowProps) => {
             return (
               <div
                 key={hold.id}
-                className="rounded-lg border border-yellow-200 dark:border-yellow-900 bg-yellow-50 dark:bg-yellow-950/30 p-3 text-xs"
+                className={cn("rounded-lg border p-3 text-xs", toneClasses.warning)}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1">
@@ -306,7 +331,7 @@ const CaseHistoryRow = ({ ticket, userMap }: CaseHistoryRowProps) => {
                       <p className="font-medium text-foreground">
                         Case On Hold
                       </p>
-                      <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 text-xs">
+                      <Badge variant="outline" className={cn("text-xs", toneClasses.warning)}>
                         Paused
                       </Badge>
                     </div>
@@ -350,22 +375,16 @@ const CaseHistoryRow = ({ ticket, userMap }: CaseHistoryRowProps) => {
             const isCompleted = perf.status === "completed";
             const nextPerf = performanceDetails[index + 1];
 
-            const borderColor = isFirst
-              ? "border-green-200 dark:border-green-900"
+            const tone: Tone = isFirst
+              ? "info"
               : isCompleted
-                ? "border-purple-200 dark:border-purple-900"
-                : "border-blue-100 dark:border-blue-900";
-
-            const bgColor = isFirst
-              ? "bg-green-50 dark:bg-green-950/30"
-              : isCompleted
-                ? "bg-purple-50 dark:bg-purple-950/30"
-                : "bg-blue-50 dark:bg-blue-950/30";
+                ? "success"
+                : "neutral";
 
             return (
               <div key={perf.id} className="space-y-2">
                 <div
-                  className={`rounded-lg border ${borderColor} ${bgColor} p-3 text-xs`}
+                  className={cn("rounded-lg border p-3 text-xs", toneClasses[tone])}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1">
@@ -374,12 +393,12 @@ const CaseHistoryRow = ({ ticket, userMap }: CaseHistoryRowProps) => {
                           {perf.employeeName}
                         </p>
                         {isFirst && (
-                          <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 text-xs">
+                          <Badge variant="outline" className={cn("text-xs", toneClasses.info)}>
                             Initiated
                           </Badge>
                         )}
                         {isCompleted && (
-                          <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 text-xs">
+                          <Badge variant="outline" className={cn("text-xs", toneClasses.success)}>
                             Completed
                           </Badge>
                         )}
@@ -399,10 +418,10 @@ const CaseHistoryRow = ({ ticket, userMap }: CaseHistoryRowProps) => {
                       <p className="text-muted-foreground">
                         <span className="font-medium">Status:</span>{" "}
                         {perf.status === "completed"
-                          ? "✓ Completed"
+                          ? "Completed"
                           : perf.status === "proceeded"
-                            ? "→ Forwarded"
-                            : "⏳ In Progress"}
+                            ? "Forwarded"
+                            : "In Progress"}
                       </p>
                     </div>
                     <div className="text-right">
@@ -418,7 +437,7 @@ const CaseHistoryRow = ({ ticket, userMap }: CaseHistoryRowProps) => {
                 {perf.status === "proceeded" && nextPerf && (
                   <div className="flex items-center justify-center h-6">
                     <div className="flex flex-col items-center">
-                      <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                      <span className="text-xs font-medium text-primary">
                         ↓
                       </span>
                       <span className="text-xs text-muted-foreground">to</span>
@@ -514,14 +533,12 @@ const TicketRow = ({ ticket, onComplete, onActionStart }: TicketRowProps) => {
 
   const duration = ticket.employeeActiveDurationSeconds ?? null;
 
-  const statusColor =
+  const statusTone: Tone =
     ticket.status === "done"
-      ? "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300"
-      : hasActiveHold
-        ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300"
-        : ticket.status === "on_hold"
-          ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300"
-          : "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300";
+      ? "success"
+      : hasActiveHold || ticket.status === "on_hold"
+        ? "warning"
+        : "info";
 
   const handleStart = async () => {
     try {
@@ -609,15 +626,15 @@ const TicketRow = ({ ticket, onComplete, onActionStart }: TicketRowProps) => {
   const isCompleted = ticket.completedAt != null;
 
   return (
-    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4 rounded-lg border border-border/60 bg-card/50 p-3 sm:p-4 hover:bg-card/80 transition-colors">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4 rounded-lg border border-border p-3 sm:p-4">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1 flex-wrap">
           <h3 className="font-display font-semibold text-foreground truncate">
             Ticket {ticket.code}
           </h3>
           <Badge
-            className={`text-xs whitespace-nowrap ${statusColor}`}
-            variant="secondary"
+            className={cn("text-xs whitespace-nowrap", toneClasses[statusTone])}
+            variant="outline"
           >
             {ticket.status === "done"
               ? t("employee.status.completed")
@@ -632,10 +649,10 @@ const TicketRow = ({ ticket, onComplete, onActionStart }: TicketRowProps) => {
               variant="outline"
               className={`text-xs ${
                 timeUntilExpiration < 3600000
-                  ? "border-red-500 text-red-600 dark:text-red-400"
+                  ? toneClasses.danger
                   : timeUntilExpiration < 86400000
-                    ? "border-orange-500 text-orange-600 dark:text-orange-400"
-                    : "border-yellow-500 text-yellow-600 dark:text-yellow-400"
+                    ? toneClasses.warning
+                    : toneClasses.warning
               }`}
             >
               {t("employee.messages.expiresIn")} {formatTimeRemaining(timeUntilExpiration)}
@@ -675,8 +692,8 @@ const TicketRow = ({ ticket, onComplete, onActionStart }: TicketRowProps) => {
                 <span
                   className={`inline-flex h-2 w-2 rounded-full ${
                     hasActiveHold
-                      ? "bg-yellow-500"
-                      : "bg-amber-500 animate-pulse"
+                      ? "bg-amber-500"
+                      : "bg-primary animate-pulse"
                   }`}
                   style={hasActiveHold ? {} : undefined}
                 />
@@ -727,9 +744,9 @@ const TicketRow = ({ ticket, onComplete, onActionStart }: TicketRowProps) => {
                     size="sm"
                     onClick={() => setHoldDialogOpen(true)}
                     variant="outline"
-                    className="border-2 border-yellow-500 text-yellow-700 hover:bg-yellow-50 dark:border-yellow-600 dark:text-yellow-400 dark:hover:bg-yellow-950/20"
+                    className="border-amber-500 text-amber-800 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-950/30"
                   >
-                    ⏸ Hold
+                    <Pause className="mr-2 h-4 w-4" />Hold
                   </Button>
                 </>
               )}
@@ -740,9 +757,9 @@ const TicketRow = ({ ticket, onComplete, onActionStart }: TicketRowProps) => {
                 disabled={timeUntilExpiration === 0}
                 className={`${
                   timeUntilExpiration === 0
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-green-600 hover:bg-green-700"
-                } text-white`}
+                    ? "bg-muted text-muted-foreground hover:bg-muted cursor-not-allowed"
+                    : "bg-emerald-600 text-white hover:bg-emerald-700"
+                }`}
                 title={
                   timeUntilExpiration === 0
                     ? "Hold period has expired. Case will be auto-cancelled."
@@ -885,7 +902,7 @@ export default function Employee() {
       <div className="space-y-6">
         <div className="flex items-start justify-between">
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight">
+            <h1 className="text-2xl font-semibold tracking-tight">
               {user?.fullName
                 ? t("employee.welcome", { name: user.fullName })
                 : t("employee.dashboard")}
@@ -909,13 +926,13 @@ export default function Employee() {
               <CardTitle className="text-sm font-medium">
                 {t("employee.received")}
               </CardTitle>
-              <Package className="h-4 w-4 text-blue-600 dark:text-blue-300" />
+              <Package className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl md:text-3xl font-semibold tracking-tight">
                 {stats?.receivedToday ?? 0}
               </div>
-              <p className="text-xs text-muted-foreground">{t("employee.today")}</p>
+              <p className="text-sm text-muted-foreground">{t("employee.today")}</p>
             </CardContent>
           </Card>
 
@@ -924,13 +941,13 @@ export default function Employee() {
               <CardTitle className="text-sm font-medium">
                 {t("employee.completed")}
               </CardTitle>
-              <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-300" />
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl md:text-3xl font-semibold tracking-tight">
                 {stats?.completedToday ?? 0}
               </div>
-              <p className="text-xs text-muted-foreground">{t("employee.today")}</p>
+              <p className="text-sm text-muted-foreground">{t("employee.today")}</p>
             </CardContent>
           </Card>
 
@@ -939,13 +956,13 @@ export default function Employee() {
               <CardTitle className="text-sm font-medium">
                 {t("employee.proceeded")}
               </CardTitle>
-              <ArrowRight className="h-4 w-4 text-purple-600 dark:text-purple-300" />
+              <ArrowRight className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl md:text-3xl font-semibold tracking-tight">
                 {stats?.proceedToday ?? 0}
               </div>
-              <p className="text-xs text-muted-foreground">{t("employee.today")}</p>
+              <p className="text-sm text-muted-foreground">{t("employee.today")}</p>
             </CardContent>
           </Card>
         </div>
@@ -1035,7 +1052,7 @@ export default function Employee() {
 
                     {/* Pagination Controls */}
                     {historyQuery.data && historyQuery.data.total > 0 && (
-                      <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                      <div className="flex items-center justify-between mt-6 pt-4 border-t border-border">
                         <p className="text-sm text-muted-foreground">
                           {t("employee.pagination.showing", {
                             start: (historyPage - 1) * itemsPerPage + 1,

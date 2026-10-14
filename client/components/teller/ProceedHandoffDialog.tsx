@@ -88,13 +88,13 @@ export function ProceedHandoffDialog({
 
         <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
           {/* Ticket Summary */}
-          <div className="rounded-lg bg-gradient-to-br from-primary/10 via-accent/5 to-background border border-border/60 p-4">
+          <div className="rounded-lg border border-border bg-muted/40 p-4">
             <div className="flex items-end justify-between gap-4 mb-2">
               <div>
                 <p className="text-xs uppercase text-muted-foreground tracking-wider">
                   Ticket Number
                 </p>
-                <h3 className="font-display text-3xl font-bold tracking-widest text-primary">
+                <h3 className="font-display text-2xl font-semibold tracking-wider text-primary md:text-3xl">
                   {ticket.code}
                 </h3>
               </div>
@@ -231,7 +231,7 @@ export function ProceedHandoffDialog({
                 <div className="flex items-center gap-2 text-sm font-semibold uppercase text-muted-foreground tracking-wide">
                   <StickyNote className="h-4 w-4 flex-shrink-0" /> Notes
                 </div>
-                <div className="rounded bg-muted/50 p-3 border border-border/40">
+                <div className="rounded-md border border-border bg-muted/40 p-3">
                   <p className="text-sm whitespace-pre-wrap">{ticket.notes}</p>
                 </div>
               </div>

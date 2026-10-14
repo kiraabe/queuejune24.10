@@ -1,23 +1,26 @@
 import { useState, useEffect, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Ticket } from "@shared/api";
 import {
-  ChevronLeft,
-  ChevronRight,
   ArrowRight,
   Calendar,
   ChevronDown,
-  AlertCircle,
-  CheckCircle,
-  AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { CompletedTicketSummary } from "./CompletedTicketSummary";
 import { ProcessFlowChart } from "./ProcessFlowChart";
+import { PerformanceRating } from "./PerformanceRating";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import type { ListUsersResponse, ServiceItem } from "@shared/api";
+import {
+  toneDanger,
+  toneInfo,
+  toneNeutral,
+  toneSuccess,
+} from "./status-tones";
 
 interface EmployeeStep {
   id: string;
@@ -144,14 +147,14 @@ export function TicketSection({
   };
 
   return (
-    <Card className="border-border/70 bg-card/80">
+    <Card>
       <CardHeader>
-        <CardTitle className="text-lg">{title}</CardTitle>
+        <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent>
         {items.length === 0 ? (
           <div className="flex items-center justify-center py-8">
-            <p className="text-muted-foreground">No records available.</p>
+            <p className="text-sm text-muted-foreground">No records available.</p>
           </div>
         ) : (
           <>
@@ -267,22 +270,6 @@ function TicketRow({
     const items = performanceData.items;
     return items.reduce((sum, item) => sum + (item.durationSeconds || 0), 0);
   }, [performanceData]);
-
-  // Helper function to format seconds
-  const formatSeconds = (seconds: number | null) => {
-    if (seconds === null || seconds === 0) return "N/A";
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-
-    if (hours > 0) {
-      return `${hours}hr ${minutes}min ${secs}sec`;
-    } else if (minutes > 0) {
-      return `${minutes}min ${secs}sec`;
-    } else {
-      return `${secs}sec`;
-    }
-  };
 
   // Helper function to get job title name from ID
   const getJobTitleName = (jobTitleId: string | null | undefined) => {
@@ -512,428 +499,178 @@ function TicketRow({
     return remark;
   };
 
+  const statusTone =
+    ticket.status === "done"
+      ? toneSuccess
+      : ticket.status === "skipped"
+        ? toneDanger
+        : ticket.status === "serving"
+          ? toneInfo
+          : toneNeutral;
+
+  const standardStatus = getStandardTimeStatus();
+
   return (
-    <>
-      <div
-        className={`rounded-lg border transition-all ${
-          ticket.status === "done"
-            ? "border-border bg-card"
-            : "border-border/50 bg-background/50"
-        }`}
-      >
-        {/* Accordion header - always visible */}
-        <div className="p-3">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <p className="font-semibold text-foreground">{ticket.code}</p>
-              <p className="text-sm text-muted-foreground">
-                {ticket.ownerName || "—"}
+    <div
+      className={`rounded-lg border ${
+        ticket.status === "done" ? "border-border bg-card" : "border-border bg-muted/40"
+      }`}
+    >
+      {/* Accordion header - always visible */}
+      <div className="p-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-foreground">{ticket.code}</p>
+            <p className="text-sm text-muted-foreground">
+              {ticket.ownerName || "—"}
+            </p>
+            {ticket.transferredToUserId && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Sent to: {userMap.get(ticket.transferredToUserId) || "—"}
+                {ticket.jobTitleForProceed && (
+                  <span className="block">{getJobTitleName(ticket.jobTitleForProceed) || ticket.jobTitleForProceed}</span>
+                )}
               </p>
-              {ticket.transferredToUserId && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Sent to: {userMap.get(ticket.transferredToUserId) || "—"}
-                  {ticket.jobTitleForProceed && (
-                    <span className="block">{getJobTitleName(ticket.jobTitleForProceed) || ticket.jobTitleForProceed}</span>
-                  )}
-                </p>
-              )}
-            </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {ticket.status === "done" && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsExpanded(!isExpanded)}
-                  className="h-8 w-8 p-0"
-                  aria-label={
-                    isExpanded
-                      ? "Collapse ticket details"
-                      : "Expand ticket details"
-                  }
-                >
-                  <ChevronDown
-                    className={`h-4 w-4 transition-transform ${
-                      isExpanded ? "rotate-180" : ""
-                    }`}
-                  />
-                </Button>
-              )}
-              <span
-                className={`inline-block rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap ${
-                  ticket.status === "done"
-                    ? "bg-green-200 text-green-800 dark:bg-green-900 dark:text-green-100"
-                    : ticket.status === "skipped"
-                      ? "bg-red-200 text-red-800 dark:bg-red-900 dark:text-red-100"
-                      : ticket.status === "serving"
-                        ? "bg-blue-200 text-blue-800 dark:bg-blue-900 dark:text-blue-100"
-                        : "bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-gray-100"
-                }`}
+            )}
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            {ticket.status === "done" && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="h-8 w-8 p-0"
+                aria-label={
+                  isExpanded
+                    ? "Collapse ticket details"
+                    : "Expand ticket details"
+                }
               >
-                {ticket.status}
-              </span>
-            </div>
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform ${
+                    isExpanded ? "rotate-180" : ""
+                  }`}
+                />
+              </Button>
+            )}
+            <span
+              className={`inline-flex items-center whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs font-medium ${statusTone}`}
+            >
+              {ticket.status}
+            </span>
           </div>
         </div>
-
-        {/* Accordion content - shown when expanded */}
-        {isExpanded && (
-          <div className="border-t border-current/10 px-3 pb-3 pt-3 space-y-3">
-            {(ticket.transferredFromWindow ||
-              ticket.transferredToWindow ||
-              ticket.transferredToUserId) && (
-              <div className="rounded bg-purple-50/50 p-2 dark:bg-purple-950/20">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-purple-700 dark:text-purple-300">
-                    Transfer Info
-                  </span>
-                </div>
-                <div className="mt-2 flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground font-medium">
-                    {ticket.transferredFromWindow
-                      ? getWindowName(ticket.transferredFromWindow)
-                      : "—"}
-                  </span>
-                  <ArrowRight className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                  <div className="text-muted-foreground font-medium">
-                    {ticket.transferredToWindow
-                      ? getWindowName(ticket.transferredToWindow)
-                      : ticket.transferredToUserId
-                        ? (
-                            <>
-                              <span>{userMap.get(ticket.transferredToUserId) || "—"}</span>
-                              {ticket.jobTitleForProceed && (
-                                <span className="block text-xs text-muted-foreground font-normal">
-                                  {getJobTitleName(ticket.jobTitleForProceed) || ticket.jobTitleForProceed}
-                                </span>
-                              )}
-                            </>
-                          )
-                        : "—"}
-                  </div>
-                </div>
-                {ticket.transferredAt && (
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
-                    <Calendar className="h-3 w-3" />
-                    <span>{formatDate(ticket.transferredAt)}</span>
-                  </div>
-                )}
-                {ticket.remark && extractReason(ticket.remark) && (
-                  <div className="mt-2 pt-2 border-t border-purple-200 dark:border-purple-800">
-                    <p className="text-xs font-medium text-purple-700 dark:text-purple-300">
-                      Transfer Reason
-                    </p>
-                    <p className="mt-1 text-xs text-purple-600 dark:text-purple-400">
-                      {extractReason(ticket.remark)}
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {ticket.selectedServices && ticket.selectedServices.length > 0 && (
-              <div className="rounded bg-blue-50/50 p-2 dark:bg-blue-950/20">
-                <p className="text-xs font-medium text-blue-700 dark:text-blue-300">
-                  Selected Services
-                </p>
-                <ul className="mt-1 space-y-1">
-                  {ticket.selectedServices.map((serviceName, index) => (
-                    <li
-                      key={index}
-                      className="text-xs text-blue-600 dark:text-blue-400"
-                    >
-                      • {serviceName}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {ticket.notes && (
-              <p className="text-sm text-muted-foreground">
-                Notes: {ticket.notes}
-              </p>
-            )}
-            {ticket.status === "skipped" && ticket.remark && (
-              <div className="rounded bg-red-50/50 p-2 dark:bg-red-950/20">
-                <p className="text-xs font-medium text-red-700 dark:text-red-300">
-                  Skip Reason
-                </p>
-                <p className="mt-1 text-xs text-red-600 dark:text-red-400">
-                  {extractSkipReason(ticket.remark) || "No reason provided"}
-                </p>
-              </div>
-            )}
-            {ticket.woreda && (
-              <p className="text-xs text-muted-foreground">
-                Woreda: {ticket.woreda}
-              </p>
-            )}
-
-            {/* Process flow chart for completed tickets */}
-            {ticket.status === "done" && (
-              <>
-                {processSteps.length > 0 ? (
-                  <ProcessFlowChart
-                    ticket={ticket}
-                    steps={processSteps}
-                    userMap={userMap}
-                  />
-                ) : (
-                  <CompletedTicketSummary ticket={ticket} />
-                )}
-
-                {/* Performance Rating Slider */}
-                {(() => {
-                  const { performanceLevel, standardMinutes, standardSeconds, source } =
-                    getStandardTimeStatus();
-                  const selectedServices = ticket.selectedServices || [];
-
-                  if (standardSeconds && totalDuration) {
-                    // Formula: (standard_time / actual_time) * 65, clamped to [0, 100]
-                    const performance = Math.max(0, Math.min(100, (standardSeconds / totalDuration) * 65));
-                    const percentageOfStandard = Math.round(performance);
-
-                    const getBgColor = () => {
-                      switch (performanceLevel) {
-                        case "on_time":
-                          return "bg-green-50 dark:bg-green-950/50 border-green-200 dark:border-green-800";
-                        case "slightly_over":
-                          return "bg-yellow-50 dark:bg-yellow-950/50 border-yellow-200 dark:border-yellow-800";
-                        case "moderately_over":
-                          return "bg-orange-50 dark:bg-orange-950/50 border-orange-200 dark:border-orange-800";
-                        case "significantly_over":
-                          return "bg-red-50 dark:bg-red-950/50 border-red-200 dark:border-red-800";
-                        default:
-                          return "bg-gray-50 dark:bg-gray-950/50 border-gray-200 dark:border-gray-800";
-                      }
-                    };
-
-                    const getStatusMessage = () => {
-                      const timeDiffSeconds = totalDuration - standardSeconds;
-                      const overTime = Math.max(0, timeDiffSeconds);
-
-                      switch (performanceLevel) {
-                        case "on_time":
-                          if (timeDiffSeconds <= 0) {
-                            return {
-                              text: "Within standard time",
-                              color: "text-green-600 dark:text-green-400"
-                            };
-                          } else {
-                            return {
-                              text: `Slightly over by ${formatSeconds(overTime)}`,
-                              color: "text-green-600 dark:text-green-400"
-                            };
-                          }
-                        case "slightly_over":
-                          return {
-                            text: `Over by ${formatSeconds(overTime)}`,
-                            color: "text-yellow-600 dark:text-yellow-400"
-                          };
-                        case "moderately_over":
-                          return {
-                            text: `Over by ${formatSeconds(overTime)}`,
-                            color: "text-orange-600 dark:text-orange-400"
-                          };
-                        case "significantly_over":
-                          return {
-                            text: `Significantly over by ${formatSeconds(overTime)}`,
-                            color: "text-red-600 dark:text-red-400"
-                          };
-                        default:
-                          return {
-                            text: "Unknown",
-                            color: "text-gray-600 dark:text-gray-400"
-                          };
-                      }
-                    };
-
-                    const status = getStatusMessage();
-
-                    return (
-                      <div className={`mt-4 p-4 rounded-lg border space-y-4 ${getBgColor()}`}>
-                        {source === "services" && selectedServices.length > 0 && (
-                          <div className="space-y-2">
-                            <p className="text-sm font-semibold text-muted-foreground">
-                              Selected Services Standard Time:
-                            </p>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              {selectedServices.map((serviceName) => {
-                                const serviceTime = serviceStandardTimes[serviceName];
-                                return (
-                                  <div
-                                    key={serviceName}
-                                    className="flex items-center justify-between p-2 rounded bg-white/50 dark:bg-black/20"
-                                  >
-                                    <span className="text-sm text-muted-foreground">
-                                      {serviceName}
-                                    </span>
-                                    <span className="text-sm font-semibold">
-                                      {serviceTime ? `${serviceTime} min` : "N/A"}
-                                    </span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                            <div className="border-t border-current opacity-20 my-2"></div>
-                          </div>
-                        )}
-
-                        <div className="flex items-center justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between gap-2 mb-2">
-                              <p className="text-sm font-semibold text-muted-foreground">
-                                Total Standard Time: {standardMinutes} minutes
-                                ({formatSeconds(standardSeconds)})
-                                {source === "services" && (
-                                  <span className="text-xs ml-2 opacity-75">
-                                    (combined from selected services)
-                                  </span>
-                                )}
-                                {source === "category" && (
-                                  <span className="text-xs ml-2 opacity-75">
-                                    (from service category)
-                                  </span>
-                                )}
-                              </p>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className={`px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap cursor-help ${
-                                    performanceLevel === "on_time"
-                                      ? "bg-green-200 text-green-800 dark:bg-green-900 dark:text-green-200"
-                                      : performanceLevel === "slightly_over"
-                                        ? "bg-yellow-200 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                                        : performanceLevel === "moderately_over"
-                                          ? "bg-orange-200 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
-                                          : "bg-red-200 text-red-800 dark:bg-red-900 dark:text-red-200"
-                                  }`}>
-                                    {performanceLevel === "on_time" && "✓ On Time"}
-                                    {performanceLevel === "slightly_over" && "⚠ Slightly Over"}
-                                    {performanceLevel === "moderately_over" && "⚠ Moderately Over"}
-                                    {performanceLevel === "significantly_over" && "✕ Significantly Over"}
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent side="top">
-                                  {performanceLevel === "on_time" && "🟢 On Time - Good performance (≥ 65%)"}
-                                  {performanceLevel === "slightly_over" && "🟡 Slightly Over - Minor delay (50-64%)"}
-                                  {performanceLevel === "moderately_over" && "🟠 Moderately Over - Significant delay (30-49%)"}
-                                  {performanceLevel === "significantly_over" && "🔴 Significantly Over - Major delay (< 30%)"}
-                                </TooltipContent>
-                              </Tooltip>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <div className="flex-1 flex items-center gap-2">
-                                <div
-                                  className="flex-1 relative h-4 rounded-full shadow-sm overflow-visible group cursor-help"
-                                  title={`${performanceLevel === "on_time" ? "On Time" : performanceLevel === "slightly_over" ? "Slightly Over" : performanceLevel === "moderately_over" ? "Moderately Over" : "Significantly Over"}: ${percentageOfStandard}% | Actual: ${formatSeconds(totalDuration || 0)} | Standard: ${formatSeconds(standardSeconds)}`}
-                                >
-                                  {/* Gradient background with color stops for performance levels */}
-                                  <div
-                                    className="absolute inset-0 rounded-full"
-                                    style={{
-                                      background: "linear-gradient(to right, rgb(239, 68, 68) 0%, rgb(239, 68, 68) 29%, rgb(251, 146, 60) 29%, rgb(251, 146, 60) 49%, rgb(251, 191, 36) 49%, rgb(251, 191, 36) 64%, rgb(34, 197, 94) 64%, rgb(34, 197, 94) 100%)",
-                                      width: "100%"
-                                    }}
-                                  ></div>
-
-                                  {/* Percentage Arrow Indicator */}
-                                  <div
-                                    className="absolute -top-10 flex flex-col items-center cursor-help"
-                                    style={{
-                                      left: `calc(${percentageOfStandard}% - 20px)`,
-                                      zIndex: 10
-                                    }}
-                                  >
-                                    {/* Percentage text box with arrow below */}
-                                    <div className="relative">
-                                      <div className={`px-3 py-1.5 rounded-md shadow-lg whitespace-nowrap font-bold text-sm ${
-                                        performanceLevel === "on_time"
-                                          ? "bg-green-600 dark:bg-green-500 text-white"
-                                          : performanceLevel === "slightly_over"
-                                            ? "bg-yellow-600 dark:bg-yellow-500 text-white"
-                                            : performanceLevel === "moderately_over"
-                                              ? "bg-orange-600 dark:bg-orange-500 text-white"
-                                              : "bg-red-600 dark:bg-red-500 text-white"
-                                      }`}>
-                                        {percentageOfStandard}%
-                                      </div>
-                                      {/* Larger arrow pointing down */}
-                                      <div
-                                        className="absolute top-full left-1/2 -translate-x-1/2 -translate-y-0.5"
-                                        style={{
-                                          width: 0,
-                                          height: 0,
-                                          borderLeft: "6px solid transparent",
-                                          borderRight: "6px solid transparent",
-                                          borderTop: performanceLevel === "on_time"
-                                            ? "8px solid rgb(22, 163, 74)"
-                                            : performanceLevel === "slightly_over"
-                                              ? "8px solid rgb(202, 138, 4)"
-                                              : performanceLevel === "moderately_over"
-                                                ? "8px solid rgb(234, 88, 12)"
-                                                : "8px solid rgb(220, 38, 38)"
-                                        }}
-                                      ></div>
-                                    </div>
-                                  </div>
-
-                                  {/* 100% marker line */}
-                                  {percentageOfStandard < 100 && (
-                                    <div
-                                      className="absolute top-0 bottom-0 w-0.5 bg-white dark:bg-slate-900 opacity-70 transition-all"
-                                      style={{
-                                        left: "100%"
-                                      }}
-                                    ></div>
-                                  )}
-
-                                  {/* Hover tooltip */}
-                                  <div className="absolute -top-12 left-1/2 -translate-x-1/2 px-3 py-2 bg-slate-900 dark:bg-slate-700 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none shadow-lg border border-slate-700 dark:border-slate-600">
-                                    <div className="font-semibold">
-                                      {performanceLevel === "on_time" && "✓ On Time"}
-                                      {performanceLevel === "slightly_over" && "⚠ Slightly Over"}
-                                      {performanceLevel === "moderately_over" && "⚠ Moderately Over"}
-                                      {performanceLevel === "significantly_over" && "✕ Significantly Over"}
-                                    </div>
-                                    <div className="text-xs opacity-90 mt-1">
-                                      {percentageOfStandard}% of standard
-                                    </div>
-                                    <div className="text-xs opacity-90">
-                                      Actual: {formatSeconds(totalDuration || 0)}
-                                    </div>
-                                    <div className="text-xs opacity-90">
-                                      Standard: {formatSeconds(standardSeconds)}
-                                    </div>
-                                    {/* Tooltip arrow */}
-                                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-900 dark:bg-slate-700 transform rotate-45 border-b border-r border-slate-700 dark:border-slate-600"></div>
-                                  </div>
-                                </div>
-                                <span className="text-sm font-bold whitespace-nowrap min-w-fit group cursor-help" title={`Total: ${percentageOfStandard}%`}>
-                                  {percentageOfStandard}%
-                                </span>
-                              </div>
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-2">
-                              <span className={`${status.color} font-semibold flex items-center gap-1`}>
-                                {performanceLevel === "on_time" && <CheckCircle className="h-3 w-3" />}
-                                {performanceLevel === "slightly_over" && <AlertTriangle className="h-3 w-3" />}
-                                {performanceLevel === "significantly_over" && <AlertTriangle className="h-3 w-3" />}
-                                {status.text}
-                              </span>
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  return null;
-                })()}
-              </>
-            )}
-          </div>
-        )}
       </div>
-    </>
+
+      {/* Accordion content - shown when expanded */}
+      {isExpanded && (
+        <div className="space-y-3 border-t border-border px-3 pb-3 pt-3">
+          {(ticket.transferredFromWindow ||
+            ticket.transferredToWindow ||
+            ticket.transferredToUserId) && (
+            <div className={`rounded-md border p-2 ${toneInfo}`}>
+              <span className="text-xs font-medium">Transfer Info</span>
+              <div className="mt-2 flex items-center gap-2 text-sm">
+                <span className="font-medium text-foreground">
+                  {ticket.transferredFromWindow
+                    ? getWindowName(ticket.transferredFromWindow)
+                    : "—"}
+                </span>
+                <ArrowRight className="h-4 w-4 shrink-0" />
+                <div className="font-medium text-foreground">
+                  {ticket.transferredToWindow
+                    ? getWindowName(ticket.transferredToWindow)
+                    : ticket.transferredToUserId
+                      ? (
+                          <>
+                            <span>{userMap.get(ticket.transferredToUserId) || "—"}</span>
+                            {ticket.jobTitleForProceed && (
+                              <span className="block text-xs font-normal text-muted-foreground">
+                                {getJobTitleName(ticket.jobTitleForProceed) || ticket.jobTitleForProceed}
+                              </span>
+                            )}
+                          </>
+                        )
+                      : "—"}
+                </div>
+              </div>
+              {ticket.transferredAt && (
+                <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                  <Calendar className="h-3 w-3" />
+                  <span>{formatDate(ticket.transferredAt)}</span>
+                </div>
+              )}
+              {ticket.remark && extractReason(ticket.remark) && (
+                <div className="mt-2 border-t border-primary/20 pt-2">
+                  <p className="text-xs font-medium">Transfer Reason</p>
+                  <p className="mt-1 text-xs text-foreground">
+                    {extractReason(ticket.remark)}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {ticket.selectedServices && ticket.selectedServices.length > 0 && (
+            <div className={`rounded-md border p-2 ${toneInfo}`}>
+              <p className="text-xs font-medium">Selected Services</p>
+              <ul className="mt-1 space-y-1">
+                {ticket.selectedServices.map((serviceName, index) => (
+                  <li key={index} className="text-xs text-foreground">
+                    • {serviceName}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {ticket.notes && (
+            <p className="text-sm text-muted-foreground">
+              Notes: {ticket.notes}
+            </p>
+          )}
+          {ticket.status === "skipped" && ticket.remark && (
+            <div className={`rounded-md border p-2 ${toneDanger}`}>
+              <p className="text-xs font-medium">Skip Reason</p>
+              <p className="mt-1 text-xs">
+                {extractSkipReason(ticket.remark) || "No reason provided"}
+              </p>
+            </div>
+          )}
+          {ticket.woreda && (
+            <p className="text-xs text-muted-foreground">
+              Woreda: {ticket.woreda}
+            </p>
+          )}
+
+          {/* Process flow chart for completed tickets */}
+          {ticket.status === "done" && (
+            <>
+              {processSteps.length > 0 ? (
+                <ProcessFlowChart
+                  ticket={ticket}
+                  steps={processSteps}
+                  userMap={userMap}
+                />
+              ) : (
+                <CompletedTicketSummary ticket={ticket} />
+              )}
+
+              {standardStatus.standardSeconds && totalDuration ? (
+                <PerformanceRating
+                  performanceLevel={standardStatus.performanceLevel}
+                  standardMinutes={standardStatus.standardMinutes}
+                  standardSeconds={standardStatus.standardSeconds}
+                  source={standardStatus.source}
+                  selectedServices={ticket.selectedServices || []}
+                  serviceStandardTimes={serviceStandardTimes}
+                  totalDuration={totalDuration}
+                />
+              ) : null}
+            </>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

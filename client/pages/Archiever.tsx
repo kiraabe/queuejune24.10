@@ -108,7 +108,7 @@ export default function Archiever() {
                 />
               ) : (
                 <Card className="p-8 text-center">
-                  <p className="text-muted-foreground">
+                  <p className="text-sm text-muted-foreground">
                     {t("archiever.queue.selectPrompt")}
                   </p>
                 </Card>

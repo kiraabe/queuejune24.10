@@ -265,12 +265,12 @@ export function ActiveTicketWorkspace({
   return (
     <div className="space-y-4">
       {/* Ticket Header */}
-      <Card className="border-2 border-blue-200 bg-blue-50">
+      <Card>
         <CardContent className="pt-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <p className="text-xs text-muted-foreground">Ticket Code</p>
-              <p className="text-2xl font-bold text-blue-600">{ticket.code}</p>
+              <p className="text-2xl md:text-3xl font-semibold tracking-tight text-primary">{ticket.code}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Customer Name</p>
@@ -283,8 +283,8 @@ export function ActiveTicketWorkspace({
             <div>
               <p className="text-xs text-muted-foreground">Processing Time</p>
               <div className="flex items-center gap-1">
-                <Clock className="h-4 w-4 text-blue-600" />
-                <p className="font-semibold text-blue-600">{processingTime}</p>
+                <Clock className="h-4 w-4 text-primary" />
+                <p className="font-semibold text-primary">{processingTime}</p>
               </div>
             </div>
           </div>
@@ -321,27 +321,27 @@ export function ActiveTicketWorkspace({
             </div>
           </div>
           {(ticket.landCertificateKarta || ticket.landCertificateDigital) && (
-            <div className="border-t pt-4 mt-4">
+            <div className="border-t border-border pt-4 mt-4">
               <p className="text-sm font-semibold text-muted-foreground mb-3">
                 Land Certificates
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {ticket.landCertificateKarta && (
-                  <div className="bg-blue-50 p-3 rounded-lg">
+                  <div className="rounded-md border border-primary/20 bg-primary/5 p-3">
                     <p className="text-xs text-muted-foreground mb-1">
                       Land Certificate (ካርታ) ser no.
                     </p>
-                    <p className="font-medium text-blue-700">
+                    <p className="font-medium text-primary">
                       {ticket.landCertificateKarta}
                     </p>
                   </div>
                 )}
                 {ticket.landCertificateDigital && (
-                  <div className="bg-green-50 p-3 rounded-lg">
+                  <div className="rounded-md border border-border bg-muted p-3">
                     <p className="text-xs text-muted-foreground mb-1">
                       Certificate (ካርታ) No.
                     </p>
-                    <p className="font-medium text-green-700">
+                    <p className="font-medium text-foreground">
                       {ticket.landCertificateDigital}
                     </p>
                   </div>
@@ -381,16 +381,16 @@ export function ActiveTicketWorkspace({
                   <div
                     key={doc}
                     className={cn(
-                      "flex items-center justify-between p-3 rounded-lg border",
+                      "flex items-center justify-between rounded-md border p-3",
                       status === "verified"
-                        ? "border-green-200 bg-green-50"
-                        : "border-gray-200 bg-white",
+                        ? "border-emerald-200 bg-emerald-50"
+                        : "border-border bg-card",
                     )}
                   >
                     <div>
                       <p className="font-medium text-sm">{doc}</p>
                       {status === "verified" && (
-                        <p className="text-xs text-green-600">
+                        <p className="text-xs text-emerald-700">
                           Verified at{" "}
                           {new Date(
                             ticket.documentChecklist[doc]?.verifiedAt ||
@@ -435,7 +435,7 @@ export function ActiveTicketWorkspace({
       </Card>
 
       {/* Action Buttons */}
-      <div className="flex gap-3 sticky bottom-0 bg-white p-4 rounded-lg border">
+      <div className="sticky bottom-0 flex gap-3 rounded-lg border border-border bg-card p-4">
         <Button
           onClick={() => {
             if (allVerified) {

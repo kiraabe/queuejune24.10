@@ -74,7 +74,7 @@ export function FieldVisitActionButton({
         variant="outline"
         size="sm"
         onClick={() => setOpen(true)}
-        className="text-yellow-600 border-yellow-600 hover:bg-yellow-50"
+        className="text-amber-700 border-amber-500 hover:bg-amber-50 dark:text-amber-300 dark:hover:bg-amber-950/30"
       >
         <AlertCircle className="w-4 h-4 mr-2" />
         Requires Field Visit
@@ -93,14 +93,14 @@ export function FieldVisitActionButton({
 
           <div className="space-y-4 py-4">
             {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+              <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm dark:bg-red-950/40 dark:border-red-900 dark:text-red-300">
                 {error}
               </div>
             )}
 
             {/* Ticket Info */}
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded">
-              <p className="text-sm font-medium text-blue-900">
+            <div className="p-3 bg-primary/5 border border-primary/20 rounded-md">
+              <p className="text-sm font-medium text-primary">
                 Ticket: {ticket.code}
               </p>
             </div>
@@ -128,7 +128,7 @@ export function FieldVisitActionButton({
                   )
                 }
               >
-                <div className="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50">
+                <div className="flex items-center space-x-2 p-2 border border-border rounded-md hover:bg-muted/50">
                   <RadioGroupItem value="queue_new_ticket" id="policy-queue" />
                   <Label
                     htmlFor="policy-queue"
@@ -137,14 +137,14 @@ export function FieldVisitActionButton({
                     <span className="font-medium">
                       Generate New Daily Ticket
                     </span>
-                    <p className="text-xs text-gray-600">
+                    <p className="text-xs text-muted-foreground">
                       Create a new ticket to rejoin the queue (FIFO from
                       readiness time)
                     </p>
                   </Label>
                 </div>
 
-                <div className="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50">
+                <div className="flex items-center space-x-2 p-2 border border-border rounded-md hover:bg-muted/50">
                   <RadioGroupItem
                     value="direct_assignment"
                     id="policy-direct"
@@ -154,7 +154,7 @@ export function FieldVisitActionButton({
                     className="cursor-pointer flex-1"
                   >
                     <span className="font-medium">Direct Assignment</span>
-                    <p className="text-xs text-gray-600">
+                    <p className="text-xs text-muted-foreground">
                       Assign case directly to a specific employee (no queue)
                     </p>
                   </Label>

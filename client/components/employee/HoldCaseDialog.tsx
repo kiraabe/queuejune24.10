@@ -66,7 +66,7 @@ export function HoldCaseDialog({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Pause className="w-5 h-5 text-yellow-600" />
+            <Pause className="w-5 h-5 text-amber-600" />
             Place Case On Hold
           </DialogTitle>
           <DialogDescription>
@@ -77,14 +77,14 @@ export function HoldCaseDialog({
 
         <div className="space-y-4 py-4">
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+            <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm dark:bg-red-950/40 dark:border-red-900 dark:text-red-300">
               {error}
             </div>
           )}
 
           {/* Ticket Info */}
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded">
-            <p className="text-sm font-medium text-blue-900">
+          <div className="p-3 bg-primary/5 border border-primary/20 rounded-md">
+            <p className="text-sm font-medium text-primary">
               Ticket: {ticket.code}
             </p>
           </div>
@@ -115,7 +115,7 @@ export function HoldCaseDialog({
           </div>
 
           {/* Note */}
-          <div className="p-3 bg-white border border-gray-200 rounded text-xs text-foreground">
+          <div className="p-3 bg-muted/50 border border-border rounded-md text-xs text-foreground">
             <p className="font-medium mb-1">Important:</p>
             <ul className="space-y-1 list-disc pl-4">
               <li>
