@@ -115,7 +115,7 @@ export function HoldCaseDialog({
           </div>
 
           {/* Note */}
-          <div className="p-3 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800">
+          <div className="p-3 bg-white border border-gray-200 rounded text-xs text-foreground">
             <p className="font-medium mb-1">Important:</p>
             <ul className="space-y-1 list-disc pl-4">
               <li>

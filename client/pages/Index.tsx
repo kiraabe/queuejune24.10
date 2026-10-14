@@ -247,7 +247,7 @@ const TicketSnapshot = ({ t }: { t: (key: string) => string }) => (
 
 const PhaseCard = ({ t }: { t: (key: string) => string }) => {
   return ({ phaseKey, titleKey, captionKey, highlights }: Phase) => (
-    <Card className="h-full border-border/60 bg-card/80 p-6 shadow-lg shadow-primary/5 backdrop-blur">
+    <Card className="h-full border border-gray-200 bg-white p-6 shadow-none backdrop-blur-none hover:shadow-none">
       <div className="flex items-center justify-between">
         <Badge
           variant="secondary"
@@ -391,7 +391,7 @@ export default function Index() {
         </div>
       </section>
 
-      <section className="relative border-t border-border/60 bg-foreground/5 py-8 sm:py-12 md:py-16">
+      <section className="relative border-t border-border/60 bg-background">
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-start mb-8 sm:mb-12">
             <h2 className="font-display text-2xl sm:text-3xl font-semibold text-foreground">
