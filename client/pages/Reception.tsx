@@ -6,6 +6,10 @@ import {
   Handshake,
   ShieldCheck,
   AlertCircle,
+  IdCard,
+  MapPin,
+  Tag,
+  User,
 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { ConsoleShell } from "@/components/layout/ConsoleShell";
@@ -549,23 +553,29 @@ export default function Reception() {
                   <Label htmlFor="owner-name" className="text-sm font-semibold text-foreground">
                     {t("reception.ownerLabel")}
                   </Label>
-                  <Input
-                    id="owner-name"
-                    value={ownerName}
-                    onChange={(event) => setOwnerName(event.target.value)}
-                    placeholder={t("reception.ownerPlaceholder")}
-                    required
-                    className="h-10 bg-white border-border shadow-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
-                  />
+                  <div className="relative">
+                    <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                    <Input
+                      id="owner-name"
+                      value={ownerName}
+                      onChange={(event) => setOwnerName(event.target.value)}
+                      placeholder={t("reception.ownerPlaceholder")}
+                      required
+                      className="h-10 pl-9 bg-white border-border shadow-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
+                    />
+                  </div>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="woreda" className="text-sm font-semibold text-foreground">
                     {t("reception.woredaLabel")}
                   </Label>
                   <Select value={woreda} onValueChange={setWoreda}>
-                    <SelectTrigger id="woreda" className="h-10 bg-white border-border shadow-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15">
-                      <SelectValue placeholder={t("reception.woredaPlaceholder")} />
-                    </SelectTrigger>
+                    <div className="relative">
+                      <MapPin className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                      <SelectTrigger id="woreda" className="h-10 pl-9 bg-white border-border shadow-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15">
+                        <SelectValue placeholder={t("reception.woredaPlaceholder")} />
+                      </SelectTrigger>
+                    </div>
                     <SelectContent>
                       {WOREDA_OPTIONS.map((option) => (
                         <SelectItem key={option} value={option}>
@@ -586,16 +596,19 @@ export default function Reception() {
                   >
                     karta (ካርታ) ser no.
                   </Label>
-                  <Input
-                    id="land-cert-karta"
-                    value={landCertificateKarta}
-                    onChange={(event) =>
-                      setLandCertificateKarta(event.target.value)
-                    }
-                    placeholder="Enter certificate serial number"
-                    required
-                    className="h-10 bg-white border-border shadow-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
-                  />
+                  <div className="relative">
+                    <IdCard className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                    <Input
+                      id="land-cert-karta"
+                      value={landCertificateKarta}
+                      onChange={(event) =>
+                        setLandCertificateKarta(event.target.value)
+                      }
+                      placeholder="Enter certificate serial number"
+                      required
+                      className="h-10 pl-9 bg-white border-border shadow-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
+                    />
+                  </div>
                 </div>
                 <div className="grid gap-2">
                   <Label
@@ -604,16 +617,19 @@ export default function Reception() {
                   >
                     karta (ካርታ) No.
                   </Label>
-                  <Input
-                    id="land-cert-digital"
-                    value={landCertificateDigital}
-                    onChange={(event) =>
-                      setLandCertificateDigital(event.target.value)
-                    }
-                    placeholder="Enter certificate number"
-                    required
-                    className="h-10 bg-white border-border shadow-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
-                  />
+                  <div className="relative">
+                    <IdCard className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                    <Input
+                      id="land-cert-digital"
+                      value={landCertificateDigital}
+                      onChange={(event) =>
+                        setLandCertificateDigital(event.target.value)
+                      }
+                      placeholder="Enter certificate number"
+                      required
+                      className="h-10 pl-9 bg-white border-border shadow-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -627,9 +643,12 @@ export default function Reception() {
                     value={selectedCategory}
                     onValueChange={setSelectedCategory}
                   >
-                    <SelectTrigger id="category" className="h-10 bg-white border-border shadow-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15">
-                      <SelectValue placeholder={t("reception.categoryPlaceholder")} />
-                    </SelectTrigger>
+                    <div className="relative">
+                      <Tag className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                      <SelectTrigger id="category" className="h-10 pl-9 bg-white border-border shadow-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15">
+                        <SelectValue placeholder={t("reception.categoryPlaceholder")} />
+                      </SelectTrigger>
+                    </div>
                     <SelectContent>
                       {serviceCategories.map((cat) => (
                         <SelectItem key={cat.id} value={cat.id}>
