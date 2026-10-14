@@ -90,44 +90,46 @@ export default function Login() {
   // ── Session-count check ────────────────────────────────────────────────────
   //
   // Debounced to avoid hammering the API on every keystroke.
-  // AbortController created outside the async fn so it cancels on both
-  // debounce reset and component unmount.
+  // Stale results are ignored when the username changes or the page unmounts.
 
   useEffect(() => {
     const trimmed = username.trim();
     if (!trimmed) {
       setSessionInfo(null);
+      setSessionLoading(false);
       return;
     }
 
     const controller = new AbortController();
+    let active = true;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
     const timer = setTimeout(async () => {
+      if (!active) return;
       setSessionLoading(true);
+      timeoutId = setTimeout(() => controller.abort(), SESSION_CHECK_TIMEOUT_MS);
       try {
-        const timeoutId = setTimeout(() => controller.abort(), SESSION_CHECK_TIMEOUT_MS);
-        const response  = await fetch(
+        const response = await fetch(
           `/api/auth/session-count/${encodeURIComponent(trimmed)}`,
           {
-            signal:      controller.signal,
+            signal: controller.signal,
             credentials: "include",
-            headers:     { "X-Requested-With": "fetch" },
+            headers: { "X-Requested-With": "fetch" },
           },
         );
-        clearTimeout(timeoutId);
-
-        setSessionInfo(response.ok ? await response.json() : null);
+        const session = response.ok ? await response.json() : null;
+        if (active) setSessionInfo(session);
       } catch {
-        // Session count is informational — silently ignore failures
-        setSessionInfo(null);
+        if (active) setSessionInfo(null);
       } finally {
-        setSessionLoading(false);
+        if (timeoutId !== undefined) clearTimeout(timeoutId);
+        if (active) setSessionLoading(false);
       }
     }, SESSION_CHECK_DEBOUNCE_MS);
 
     return () => {
+      active = false;
       clearTimeout(timer);
-      controller.abort(); // cancel in-flight request on cleanup / unmount
     };
   }, [username]);
 
