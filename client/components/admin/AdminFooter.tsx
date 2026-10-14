@@ -19,7 +19,7 @@ export default function AdminFooter() {
         <div className="flex items-center justify-between gap-4 flex-wrap">
           {/* Company Info */}
           <div className="text-xs text-muted-foreground">
-            <span className="font-semibold text-foreground">CTTCS Solution</span> • Track cases, ensure compliance
+            <span className="font-semibold text-foreground">STC Solution</span> • Standard time compliance
           </div>
 
           {/* Links */}

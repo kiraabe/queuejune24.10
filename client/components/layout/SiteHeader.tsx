@@ -34,15 +34,15 @@ const SiteHeader = () => {
         <Link to="/" className="flex items-center gap-2 min-w-0 flex-shrink-0">
           <img
             src="/logos/lhpria-logo.webp"
-            alt="CTTCS Solution logo"
+            alt="STC Solution logo"
             className="h-9 sm:h-10 w-9 sm:w-10 rounded-full object-cover flex-shrink-0"
           />
           <div className="hidden sm:flex flex-col min-w-0">
             <span className="font-display text-sm sm:text-base font-semibold tracking-tight text-foreground truncate">
-              CTTCS Solution
+              STC Solution
             </span>
             <span className="text-xs text-muted-foreground truncate">
-              Track cases, ensure compliance
+              Standard time compliance
             </span>
           </div>
         </Link>
