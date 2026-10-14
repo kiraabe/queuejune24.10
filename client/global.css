@@ -1,5 +1,5 @@
 /** @import must precede all other statements */
-@import url("https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Noto+Sans+Ethiopic:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Ethiopic:wght@400;500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -12,47 +12,47 @@
    * A different format will require also updating the theme in tailwind.config.ts.
   */
   :root {
-    --font-sans: "Noto Sans Ethiopic", "Lexend", "Inter", "system-ui", sans-serif;
-    --font-display: "Space Grotesk", "Lexend", "Noto Sans Ethiopic", "Inter", "system-ui", sans-serif;
+    --font-sans: "Inter", "Noto Sans Ethiopic", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-display: "Inter", "Noto Sans Ethiopic", system-ui, -apple-system, "Segoe UI", sans-serif;
 
-    --background: 220 62% 98%;
-    --foreground: 226 58% 10%;
+    --background: 218 67% 98%;
+    --foreground: 218 54% 20%;
 
     --card: 0 0% 100%;
-    --card-foreground: 226 58% 10%;
+    --card-foreground: 218 54% 20%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 226 58% 10%;
+    --popover-foreground: 218 54% 20%;
 
-    --primary: 202 100% 46%;
+    --primary: 214 95% 53%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 164 64% 92%;
-    --secondary-foreground: 162 86% 24%;
+    --secondary: 218 45% 96%;
+    --secondary-foreground: 218 54% 20%;
 
-    --muted: 219 26% 90%;
-    --muted-foreground: 220 15% 45%;
+    --muted: 218 45% 96%;
+    --muted-foreground: 218 20% 49%;
 
-    --accent: 201 100% 90%;
-    --accent-foreground: 202 94% 32%;
+    --accent: 214 95% 96%;
+    --accent-foreground: 214 85% 40%;
 
     --destructive: 356 75% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 219 28% 86%;
-    --input: 219 28% 86%;
-    --ring: 202 100% 38%;
+    --border: 217 47% 93%;
+    --input: 217 47% 93%;
+    --ring: 214 95% 53%;
 
-    --radius: 0.875rem;
+    --radius: 0.75rem;
 
-    --sidebar-background: 218 60% 96%;
-    --sidebar-foreground: 228 56% 14%;
-    --sidebar-primary: 202 100% 46%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 218 54% 20%;
+    --sidebar-primary: 214 95% 53%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 62% 92%;
-    --sidebar-accent-foreground: 208 75% 26%;
-    --sidebar-border: 220 36% 84%;
-    --sidebar-ring: 202 100% 42%;
+    --sidebar-accent: 214 95% 96%;
+    --sidebar-accent-foreground: 214 85% 40%;
+    --sidebar-border: 217 47% 93%;
+    --sidebar-ring: 214 95% 53%;
   }
 
   .dark {

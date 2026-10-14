@@ -118,25 +118,23 @@ export default function Admin() {
       <div className="flex flex-col min-h-screen">
         <div className="flex-1 container mx-auto px-4 py-6 pb-12">
           <div className="space-y-6">
-            <div className="space-y-2">
-              <h1 className="text-3xl font-bold tracking-tight">Admin Panel</h1>
-              <p className="text-muted-foreground">
+            <div className="space-y-1">
+              <h1 className="text-2xl font-semibold text-foreground">Admin Panel</h1>
+              <p className="text-sm text-muted-foreground">
                 Manage system operations, monitor queues, and configure settings
               </p>
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="flex h-11 w-full items-stretch justify-start gap-1 rounded-[16px] bg-muted/50 p-1 shadow-inner">
+              <TabsList className="flex h-11 w-full justify-start gap-1 overflow-x-auto">
                 {navItems.map((item) => (
                   <TabsTrigger
                     key={item.id}
                     value={item.id}
-                    className="group flex flex-1 items-center justify-center gap-2.5 rounded-[12px] py-0 px-4 transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-lg data-[state=active]:ring-1 data-[state=active]:ring-black/5 hover:bg-muted/60"
+                    className="group flex flex-1 items-center justify-center gap-2 px-4 h-9"
                   >
-                    <span className="h-5 w-5 opacity-70 transition-opacity duration-200 group-data-[state=active]:opacity-100">
-                      {item.icon}
-                    </span>
-                    <span className="font-semibold tracking-tight">{item.label}</span>
+                    <span className="h-4 w-4 shrink-0">{item.icon}</span>
+                    <span className="font-medium">{item.label}</span>
                   </TabsTrigger>
                 ))}
               </TabsList>
