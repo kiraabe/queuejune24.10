@@ -5,14 +5,19 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronDown, Settings, User, LogOut, Globe } from "lucide-react";
+import { ChevronDown, Settings, User, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { useLanguage, Language, LANGUAGE_LABELS } from "@/hooks/use-language";
+import { LanguageSubMenu } from "@/components/profile/LanguageSubMenu";
+import {
+  userMenuContentClass,
+  userMenuDestructiveClass,
+  userMenuIconClass,
+  userMenuItemClass,
+  userMenuSeparatorClass,
+} from "@/components/profile/user-menu-styles";
+import { cn } from "@/lib/utils";
 
 interface NavItem {
   id: string;
@@ -27,7 +32,6 @@ interface ProfileDropdownProps {
 
 export function ProfileDropdown({ navItems }: ProfileDropdownProps) {
   const { user, logout } = useAuth();
-  const { language, setLanguage } = useLanguage();
 
   const settingsItem = navItems.find((item) => item.id === "settings");
   const profileItem = navItems.find((item) => item.id === "profile");
@@ -56,49 +60,48 @@ export function ProfileDropdown({ navItems }: ProfileDropdownProps) {
           <ChevronDown className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{displayName}</p>
-            <p className="text-xs leading-none text-muted-foreground capitalize">
+      <DropdownMenuContent
+        className={userMenuContentClass}
+        align="end"
+        sideOffset={8}
+        collisionPadding={12}
+        forceMount
+      >
+        <DropdownMenuLabel className="flex items-center gap-3 px-2 py-2 font-normal">
+          <Avatar className="h-10 w-10 border border-border">
+            <AvatarImage src="" alt={displayName} />
+            <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex min-w-0 flex-col">
+            <p className="truncate text-sm font-semibold leading-tight text-foreground">{displayName}</p>
+            <p className="truncate text-xs capitalize leading-tight text-muted-foreground">
               {user?.role || "Administrator"}
             </p>
           </div>
         </DropdownMenuLabel>
-        <DropdownMenuSeparator />
+        <DropdownMenuSeparator className={userMenuSeparatorClass} />
         {profileItem && (
-          <DropdownMenuItem onSelect={profileItem.onClick} className="cursor-pointer">
-            <User className="mr-2 h-4 w-4" />
+          <DropdownMenuItem onSelect={profileItem.onClick} className={userMenuItemClass}>
+            <User className={userMenuIconClass} />
             <span>Profile</span>
           </DropdownMenuItem>
         )}
         {settingsItem && (
-          <DropdownMenuItem onSelect={settingsItem.onClick} className="cursor-pointer">
-            <Settings className="mr-2 h-4 w-4" />
+          <DropdownMenuItem onSelect={settingsItem.onClick} className={userMenuItemClass}>
+            <Settings className={userMenuIconClass} />
             <span>Settings</span>
           </DropdownMenuItem>
         )}
-        <DropdownMenuSeparator />
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <Globe className="h-4 w-4 mr-2" />
-            <span>Language</span>
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
-            {Object.entries(LANGUAGE_LABELS).map(([lang, label]) => (
-              <DropdownMenuItem
-                key={lang}
-                onSelect={() => setLanguage(lang as Language)}
-                className={language === lang ? "bg-accent" : ""}
-              >
-                {label}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => logout()} className="cursor-pointer text-destructive focus:text-destructive">
-          <LogOut className="mr-2 h-4 w-4" />
+        <DropdownMenuSeparator className={userMenuSeparatorClass} />
+        <LanguageSubMenu />
+        <DropdownMenuSeparator className={userMenuSeparatorClass} />
+        <DropdownMenuItem
+          onSelect={() => logout()}
+          className={cn(userMenuItemClass, userMenuDestructiveClass)}
+        >
+          <LogOut className="h-4 w-4" />
           <span>Log out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>

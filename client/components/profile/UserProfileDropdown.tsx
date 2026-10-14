@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, User, ChevronDown, Globe } from "lucide-react";
+import { LogOut, User, ChevronDown } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { useLanguage, Language, LANGUAGE_LABELS } from "@/hooks/use-language";
 import { useTranslation } from "@/hooks/use-translation";
 import { toast } from "sonner";
 import {
@@ -13,16 +12,21 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { LanguageSubMenu } from "./LanguageSubMenu";
+import {
+  userMenuContentClass,
+  userMenuDestructiveClass,
+  userMenuIconClass,
+  userMenuItemClass,
+  userMenuSeparatorClass,
+} from "./user-menu-styles";
+import { cn } from "@/lib/utils";
 
 export function UserProfileDropdown() {
   const { user, logout } = useAuth();
-  const { language, setLanguage } = useLanguage();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -56,6 +60,35 @@ export function UserProfileDropdown() {
   const initials = getInitials(user.fullName, user.username);
   const isReception = user.role === "reception";
 
+  const identityHeader = (
+    <DropdownMenuLabel className="flex items-center gap-3 px-2 py-2 font-normal">
+      <Avatar className="h-10 w-10 border border-border">
+        <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+          {initials}
+        </AvatarFallback>
+      </Avatar>
+      <div className="flex min-w-0 flex-col">
+        <p className="truncate text-sm font-semibold leading-tight text-foreground">
+          {user.fullName || user.username}
+        </p>
+        <p className="truncate text-xs capitalize leading-tight text-muted-foreground">
+          {user.role}
+        </p>
+      </div>
+    </DropdownMenuLabel>
+  );
+
+  const logoutItem = (
+    <DropdownMenuItem
+      onSelect={handleLogout}
+      disabled={isLoggingOut}
+      className={cn(userMenuItemClass, userMenuDestructiveClass)}
+    >
+      <LogOut className={userMenuIconClass} />
+      <span>{isLoggingOut ? t("buttons.signingOut") : t("buttons.logout")}</span>
+    </DropdownMenuItem>
+  );
+
   // For reception users, show simplified dropdown with just language and logout
   if (isReception) {
     return (
@@ -75,46 +108,21 @@ export function UserProfileDropdown() {
             <ChevronDown className="h-4 w-4 opacity-50" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuLabel className="flex flex-col gap-1.5 py-2">
-            <p className="font-semibold text-sm leading-none">
-              {user.fullName || user.username}
-            </p>
-            <p className="text-xs text-muted-foreground capitalize">
-              {user.role}
-            </p>
-          </DropdownMenuLabel>
+        <DropdownMenuContent
+          align="end"
+          sideOffset={8}
+          collisionPadding={12}
+          className={userMenuContentClass}
+        >
+          {identityHeader}
 
-          <DropdownMenuSeparator />
+          <DropdownMenuSeparator className={userMenuSeparatorClass} />
 
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
-              <Globe className="h-4 w-4 mr-2" />
-              <span>{t("buttons.language")}</span>
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent>
-              {Object.entries(LANGUAGE_LABELS).map(([lang, label]) => (
-                <DropdownMenuItem
-                  key={lang}
-                  onSelect={() => setLanguage(lang as Language)}
-                  className={language === lang ? "bg-accent" : ""}
-                >
-                  {label}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
+          <LanguageSubMenu />
 
-          <DropdownMenuSeparator />
+          <DropdownMenuSeparator className={userMenuSeparatorClass} />
 
-          <DropdownMenuItem
-            onSelect={handleLogout}
-            disabled={isLoggingOut}
-            className="text-red-600 dark:text-red-400 cursor-pointer"
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            <span>{isLoggingOut ? t("buttons.signingOut") : t("buttons.logout")}</span>
-          </DropdownMenuItem>
+          {logoutItem}
         </DropdownMenuContent>
       </DropdownMenu>
     );
@@ -146,55 +154,30 @@ export function UserProfileDropdown() {
           <ChevronDown className="h-4 w-4 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel className="flex flex-col gap-1.5 py-2">
-          <p className="font-semibold text-sm leading-none">
-            {user.fullName || user.username}
-          </p>
-          <p className="text-xs text-muted-foreground capitalize">
-            {user.role}
-          </p>
-        </DropdownMenuLabel>
+      <DropdownMenuContent
+        align="end"
+        sideOffset={8}
+        collisionPadding={12}
+        className={userMenuContentClass}
+      >
+        {identityHeader}
 
-        <DropdownMenuSeparator />
+        <DropdownMenuSeparator className={userMenuSeparatorClass} />
 
         <DropdownMenuGroup>
-          <DropdownMenuItem onSelect={() => navigate("/profile")}>
-            <User className="h-4 w-4 mr-2" />
+          <DropdownMenuItem onSelect={() => navigate("/profile")} className={userMenuItemClass}>
+            <User className={userMenuIconClass} />
             <span>{t("buttons.myProfile")}</span>
           </DropdownMenuItem>
         </DropdownMenuGroup>
 
-        <DropdownMenuSeparator />
+        <DropdownMenuSeparator className={userMenuSeparatorClass} />
 
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <Globe className="h-4 w-4 mr-2" />
-            <span>{t("buttons.language")}</span>
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
-            {Object.entries(LANGUAGE_LABELS).map(([lang, label]) => (
-              <DropdownMenuItem
-                key={lang}
-                onSelect={() => setLanguage(lang as Language)}
-                className={language === lang ? "bg-accent" : ""}
-              >
-                {label}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
+        <LanguageSubMenu />
 
-        <DropdownMenuSeparator />
+        <DropdownMenuSeparator className={userMenuSeparatorClass} />
 
-        <DropdownMenuItem
-          onSelect={handleLogout}
-          disabled={isLoggingOut}
-          className="text-red-600 dark:text-red-400 cursor-pointer"
-        >
-          <LogOut className="h-4 w-4 mr-2" />
-          <span>{isLoggingOut ? t("buttons.signingOut") : t("buttons.logout")}</span>
-        </DropdownMenuItem>
+        {logoutItem}
       </DropdownMenuContent>
     </DropdownMenu>
   );
