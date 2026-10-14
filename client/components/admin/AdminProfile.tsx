@@ -10,20 +10,21 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Activity,
+  Check,
+  KeyRound,
   LogOut,
+  Monitor,
+  Moon,
+  Settings2,
   ShieldCheck,
   Sun,
-  Moon,
-  Monitor,
-  KeyRound,
-  Settings2,
-  Activity,
+  User,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -195,6 +196,12 @@ function SecurityTab() {
 
 // ─── Preferences Tab ─────────────────────────────────────────────────────────
 
+const THEME_OPTIONS = [
+  { value: "light", label: "Light", icon: Sun },
+  { value: "dark", label: "Dark", icon: Moon },
+  { value: "system", label: "System", icon: Monitor },
+];
+
 function PreferencesTab() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -203,39 +210,47 @@ function PreferencesTab() {
     setMounted(true);
   }, []);
 
-  const options = [
-    { value: "light", label: "Light", icon: Sun },
-    { value: "dark", label: "Dark", icon: Moon },
-    { value: "system", label: "System", icon: Monitor },
-  ];
-
   return (
-    <div className="space-y-6">
-      <div>
-        <Label className="text-sm font-medium">Appearance</Label>
-        <p className="text-xs text-muted-foreground mt-0.5 mb-3">
-          Choose how the interface looks to you.
-        </p>
-        {mounted && (
-          <div className="flex gap-2">
-            {options.map(({ value, label, icon: Icon }) => (
-              <Button
+    <div className="space-y-3">
+      <h3 className="text-sm font-medium text-foreground">Appearance</h3>
+      {mounted && (
+        <div role="group" aria-label="Appearance" className="grid grid-cols-3 gap-3">
+          {THEME_OPTIONS.map(({ value, label, icon: Icon }) => {
+            const selected = theme === value;
+            return (
+              <button
                 key={value}
-                variant={theme === value ? "default" : "outline"}
-                size="sm"
+                type="button"
+                aria-pressed={selected}
                 onClick={() => {
                   setTheme(value);
                   toast.success(`Theme set to ${value}`);
                 }}
-                className="flex-1"
+                className={`relative flex flex-col items-center gap-2 rounded-lg border px-3 py-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+                  selected
+                    ? "border-primary bg-primary/5 text-foreground ring-1 ring-primary"
+                    : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:bg-muted/50 hover:text-foreground"
+                }`}
               >
-                <Icon className="mr-2 h-4 w-4" />
+                {selected && (
+                  <Check
+                    className="absolute right-2 top-2 h-3.5 w-3.5 text-primary"
+                    aria-hidden="true"
+                  />
+                )}
+                <span
+                  className={`flex h-9 w-9 items-center justify-center rounded-md ${
+                    selected ? "bg-primary text-primary-foreground" : "bg-muted"
+                  }`}
+                >
+                  <Icon className="h-4 w-4" aria-hidden="true" />
+                </span>
                 {label}
-              </Button>
-            ))}
-          </div>
-        )}
-      </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -267,19 +282,23 @@ export default function AdminProfile() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6 items-start">
-      {/* Left: identity + session */}
       <IdentitySidebar user={user} loginTime={loginTime} onLogout={handleLogout} />
 
-      {/* Right: tabbed content */}
       <Card>
-        <CardHeader>
-          <CardTitle>My account</CardTitle>
-          <CardDescription>Manage your profile, security, and preferences.</CardDescription>
+        <CardHeader className="flex-row items-start gap-3 space-y-0">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <User className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <div className="space-y-1">
+            <CardTitle>My account</CardTitle>
+            <CardDescription>Manage your profile, security, and preferences.</CardDescription>
+          </div>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="account">
-            <TabsList className="mb-6">
+            <TabsList className="mb-6 grid w-full grid-cols-3">
               <TabsTrigger value="account" className="gap-1.5">
+                <User className="h-3.5 w-3.5" />
                 Account
               </TabsTrigger>
               <TabsTrigger value="security" className="gap-1.5">
