@@ -115,7 +115,7 @@ const CaseHistoryRow = ({ ticket, userMap }: CaseHistoryRowProps) => {
     )
       .then((data) => {
         setPerformanceDetails(data.items);
-        setSumEmployeesDuration(data.sumEmployeesDurationSeconds || null);
+        setSumEmployeesDuration(data.sumEmployeesDurationSeconds ?? null);
       })
       .catch(() => {});
 
@@ -266,7 +266,7 @@ const CaseHistoryRow = ({ ticket, userMap }: CaseHistoryRowProps) => {
                 {isComplete ? "Total case time" : "Elapsed"}
               </p>
             </div>
-            {sumEmployeesDuration && sumEmployeesDuration !== totalDuration && (
+            {sumEmployeesDuration != null && (
               <div className="border-t pt-2">
                 <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
                   {formatDuration(sumEmployeesDuration)}
@@ -436,8 +436,6 @@ const CaseHistoryRow = ({ ticket, userMap }: CaseHistoryRowProps) => {
 
 const TicketRow = ({ ticket, onComplete, onActionStart }: TicketRowProps) => {
   const { t } = useTranslation();
-  // For in-progress cases, calculate elapsed time from start until now
-  const [elapsedTime, setElapsedTime] = useState<number | null>(null);
   const [holdDialogOpen, setHoldDialogOpen] = useState(false);
   const [holds, setHolds] = useState<CaseHold[]>([]);
   const [timeUntilExpiration, setTimeUntilExpiration] = useState<number | null>(
@@ -471,11 +469,6 @@ const TicketRow = ({ ticket, onComplete, onActionStart }: TicketRowProps) => {
   useEffect(() => {
     fetchHolds();
   }, [ticket.id]);
-
-  // Calculate total hold duration from all completed holds
-  const totalHoldDurationSeconds = holds.reduce((sum, hold) => {
-    return sum + (hold.holdDurationSeconds || 0);
-  }, 0);
 
   // Check if case currently has an active hold
   const hasActiveHold = holds.some((h) => h.resumedAt == null);
@@ -519,63 +512,7 @@ const TicketRow = ({ ticket, onComplete, onActionStart }: TicketRowProps) => {
     return `${hours}h ${minutes}m ${seconds}s`;
   };
 
-  useEffect(() => {
-    // Only skip elapsed time if the case is completed (status = 'done')
-    // Don't skip if ticket.proceededAt is set from a previous employee
-    if (!ticket.employeeStartedAt || ticket.completedAt) {
-      setElapsedTime(null);
-      return;
-    }
-
-    // If case is on hold, freeze the timer at current value
-    if (hasActiveHold) {
-      // Calculate the elapsed time up to the hold point (excluding future hold time)
-      const now = Date.now();
-      const activeHold = holds.find((h) => h.resumedAt == null);
-      if (activeHold) {
-        // Elapsed time from start to when hold started
-        const elapsedBeforeHold = Math.round(
-          (activeHold.heldAt - ticket.employeeStartedAt!) / 1000,
-        );
-        setElapsedTime(elapsedBeforeHold);
-      }
-      return; // Don't set up interval while on hold
-    }
-
-    // Update elapsed time every second for in-progress cases (not on hold)
-    const interval = setInterval(() => {
-      const now = Date.now();
-      // Total elapsed time since start
-      const totalElapsed = Math.round((now - ticket.employeeStartedAt!) / 1000);
-      // Subtract hold duration to get active processing time
-      const activeElapsed = Math.max(
-        0,
-        totalElapsed - totalHoldDurationSeconds,
-      );
-      setElapsedTime(activeElapsed);
-    }, 1000);
-
-    // Initial calculation
-    const now = Date.now();
-    const totalElapsed = Math.round((now - ticket.employeeStartedAt) / 1000);
-    const activeElapsed = Math.max(0, totalElapsed - totalHoldDurationSeconds);
-    setElapsedTime(activeElapsed);
-
-    return () => clearInterval(interval);
-  }, [
-    ticket.employeeStartedAt,
-    ticket.completedAt,
-    hasActiveHold,
-    totalHoldDurationSeconds,
-    holds,
-  ]);
-
-  // Use elapsed time for in-progress, only calculate from start to end for completed cases
-  const duration =
-    elapsedTime ??
-    (ticket.status === "done"
-      ? calculateDuration(ticket.employeeStartedAt, ticket.completedAt)
-      : null);
+  const duration = ticket.employeeActiveDurationSeconds ?? null;
 
   const statusColor =
     ticket.status === "done"

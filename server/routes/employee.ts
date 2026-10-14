@@ -5,6 +5,7 @@ import {
   isLastParticipantCompletingCase,
   compileAndStoreProgressFlow,
 } from "../store/db";
+import { EMPLOYEE_ACTIVE_DURATION_SQL } from "../utils/timing";
 
 // Helper function to safely parse selectedServices
 function parseSelectedServices(data: any): string[] | undefined {
@@ -51,7 +52,8 @@ export const employeeReceivedTickets: RequestHandler = async (req, res) => {
                 t.job_title_for_proceed,
                 COALESCE("Land Holding Rights Certificate (ካርታ) ser no.", NULL) as land_cert_karta,
                 COALESCE("Land Holding Rights Certificate (ካርታ) No.", NULL) as land_cert_digital,
-                CASE WHEN ecp.id IS NOT NULL THEN extract(epoch from ecp.started_at)*1000 ELSE NULL END as employee_started_at`;
+                CASE WHEN ecp.id IS NOT NULL THEN extract(epoch from ecp.started_at)*1000 ELSE NULL END as employee_started_at,
+                CASE WHEN ecp.id IS NOT NULL THEN ${EMPLOYEE_ACTIVE_DURATION_SQL} END as employee_active_duration_seconds`;
 
     // For employees, show tickets transferred to them
     if (tab === "received") {
@@ -190,6 +192,9 @@ function formatTicketResponse(r: any) {
     jobTitleForProceed: r.job_title_for_proceed ?? undefined,
     employeeStartedAt: r.employee_started_at
       ? Math.round(Number(r.employee_started_at))
+      : undefined,
+    employeeActiveDurationSeconds: r.employee_started_at != null && r.employee_active_duration_seconds != null
+      ? Math.round(Number(r.employee_active_duration_seconds))
       : undefined,
     landCertificateKarta: r.land_cert_karta ?? undefined,
     landCertificateDigital: r.land_cert_digital ?? undefined,
@@ -602,7 +607,12 @@ export const employeeHistory: RequestHandler = async (req, res) => {
                 t.job_title_for_proceed,
                 COALESCE("Land Holding Rights Certificate (ካርታ) ser no.", NULL) as land_cert_karta,
                 COALESCE("Land Holding Rights Certificate (ካርታ) No.", NULL) as land_cert_digital,
-                (SELECT extract(epoch from started_at)*1000 FROM employee_case_performance WHERE ticket_id = t.id AND employee_id = $1 ORDER BY created_at DESC LIMIT 1) as employee_started_at`;
+                (SELECT extract(epoch from started_at)*1000 FROM employee_case_performance WHERE ticket_id = t.id AND employee_id = $1 ORDER BY created_at DESC LIMIT 1) as employee_started_at,
+                (SELECT ${EMPLOYEE_ACTIVE_DURATION_SQL}
+                 FROM employee_case_performance ecp
+                 WHERE ecp.ticket_id = t.id AND ecp.employee_id = $1
+                 ORDER BY ecp.started_at DESC
+                 LIMIT 1) as employee_active_duration_seconds`;
 
     // Get all cases this employee started OR worked on within the selected time period
     // This includes:
@@ -677,7 +687,7 @@ export const employeePerformanceMetrics: RequestHandler = async (req, res) => {
         extract(epoch from ecp.started_at)*1000 as started_at,
         extract(epoch from ecp.ended_at)*1000 as ended_at,
         ecp.status,
-        EXTRACT(EPOCH FROM (ecp.ended_at - ecp.started_at)) as duration_seconds,
+        ${EMPLOYEE_ACTIVE_DURATION_SQL} as duration_seconds,
         u.username,
         u.full_name,
         t.code as ticket_code,
@@ -717,8 +727,8 @@ export const employeePerformanceMetrics: RequestHandler = async (req, res) => {
       startedAt: r.started_at ? Math.round(r.started_at) : null,
       endedAt: r.ended_at ? Math.round(r.ended_at) : null,
       status: r.status,
-      durationSeconds: r.duration_seconds
-        ? Math.round(r.duration_seconds)
+      durationSeconds: r.duration_seconds != null
+        ? Math.round(Number(r.duration_seconds))
         : null,
       employeeName: r.full_name || r.username,
       jobTitle: r.job_title_name || "No Title",
@@ -729,20 +739,13 @@ export const employeePerformanceMetrics: RequestHandler = async (req, res) => {
     let sumEmployeesDurationSeconds: number | null = null;
     if (ticketId) {
       const sumRes = await p.query(
-        `SELECT SUM(
-          EXTRACT(EPOCH FROM (ecp.ended_at - ecp.started_at)) -
-          COALESCE((
-            SELECT SUM(COALESCE(hold_duration_seconds, 0))
-            FROM case_holds
-            WHERE ticket_id = ecp.ticket_id AND held_by_user_id = ecp.employee_id
-          ), 0)
-        ) as total_duration
+        `SELECT SUM(${EMPLOYEE_ACTIVE_DURATION_SQL}) as total_duration
          FROM employee_case_performance ecp
          WHERE ecp.ticket_id = $1
-           AND ecp.ended_at IS NOT NULL`,
+           AND ecp.started_at IS NOT NULL`,
         [ticketId],
       );
-      sumEmployeesDurationSeconds = sumRes.rows[0]?.total_duration
+      sumEmployeesDurationSeconds = sumRes.rows[0]?.total_duration != null
         ? Math.round(Number(sumRes.rows[0].total_duration))
         : null;
     }
@@ -782,7 +785,7 @@ export const caseWorkflow: RequestHandler = async (req, res) => {
          extract(epoch from ecp.started_at)*1000 as started_at,
          extract(epoch from ecp.ended_at)*1000 as ended_at,
          ecp.status,
-         EXTRACT(EPOCH FROM (ecp.ended_at - ecp.started_at)) as duration_seconds,
+        ${EMPLOYEE_ACTIVE_DURATION_SQL} as duration_seconds,
          u.username,
          u.full_name,
          t.code as ticket_code,
@@ -1001,8 +1004,8 @@ export const caseWorkflow: RequestHandler = async (req, res) => {
         startedAt: r.started_at ? Math.round(r.started_at) : null,
         endedAt: r.ended_at ? Math.round(r.ended_at) : null,
         status: "Proceeded", // Set default status as "Proceeded" for all employees initially
-        durationSeconds: r.duration_seconds
-          ? Math.round(r.duration_seconds)
+        durationSeconds: r.duration_seconds != null
+          ? Math.round(Number(r.duration_seconds))
           : null,
         employeeName: r.full_name || r.username || "Unknown",
         jobTitle: r.job_title_name,
@@ -1077,8 +1080,9 @@ export const listCaseWorkflows: RequestHandler = async (req, res) => {
 
     // Get list of distinct ticket IDs (paginated)
     const ticketRes = await p.query(
-      `SELECT DISTINCT ON (t.id) t.id, t.code, t.completed_at, t.status,
+      `SELECT DISTINCT ON (t.id) t.id, t.code, t.status,
               extract(epoch from t.created_at)*1000 as created_at,
+              extract(epoch from t.completed_at)*1000 as completed_at,
               extract(epoch from t.skipped_at)*1000 as skipped_at
        FROM tickets t
        LEFT JOIN employee_case_performance ecp ON t.id = ecp.ticket_id
@@ -1095,12 +1099,19 @@ export const listCaseWorkflows: RequestHandler = async (req, res) => {
 
     const ticketIds = ticketRes.rows.map((row) => row.id);
     const ticketDatesMap = new Map<string, number | null>();
+    const ticketEndDatesMap = new Map<string, number | null>();
     const ticketStatusMap = new Map<string, string>();
     ticketRes.rows.forEach((row) => {
       const createdAtValue = row.created_at
         ? Math.round(Number(row.created_at))
         : null;
       ticketDatesMap.set(row.id, createdAtValue);
+      ticketEndDatesMap.set(
+        row.id,
+        row.completed_at || row.skipped_at
+          ? Math.round(Number(row.completed_at || row.skipped_at))
+          : null,
+      );
       ticketStatusMap.set(row.id, row.status);
     });
     console.log(
@@ -1125,7 +1136,7 @@ export const listCaseWorkflows: RequestHandler = async (req, res) => {
          extract(epoch from ecp.started_at)*1000 as started_at,
          extract(epoch from ecp.ended_at)*1000 as ended_at,
          ecp.status,
-         EXTRACT(EPOCH FROM (ecp.ended_at - ecp.started_at)) as duration_seconds,
+        ${EMPLOYEE_ACTIVE_DURATION_SQL} as duration_seconds,
          u.username,
          u.full_name,
          t.code as ticket_code,
@@ -1431,8 +1442,8 @@ export const listCaseWorkflows: RequestHandler = async (req, res) => {
             startedAt: r.started_at ? Math.round(r.started_at) : null,
             endedAt: r.ended_at ? Math.round(r.ended_at) : null,
             status: r.status,
-            durationSeconds: r.duration_seconds
-              ? Math.round(r.duration_seconds)
+            durationSeconds: r.duration_seconds != null
+              ? Math.round(Number(r.duration_seconds))
               : null,
             employeeName: r.full_name || r.username || "Unknown",
             jobTitle: r.job_title_name,
@@ -1494,15 +1505,12 @@ export const listCaseWorkflows: RequestHandler = async (req, res) => {
           }
         }
 
-        // Calculate total duration from first step to last step
-        let totalDuration = null;
-        if (workflowItems.length > 0) {
-          const first = workflowItems[0];
-          const last = workflowItems[workflowItems.length - 1];
-          if (first.startedAt && last.endedAt) {
-            totalDuration = (last.endedAt - first.startedAt) / 1000;
-          }
-        }
+        const caseStartedAt = ticketDatesMap.get(ticketId);
+        const caseEndedAt =
+          ticketEndDatesMap.get(ticketId) ?? Date.now();
+        const totalDuration = caseStartedAt != null
+          ? Math.max(0, (caseEndedAt - caseStartedAt) / 1000)
+          : null;
         console.log(
           `[listCaseWorkflows] Ticket ${ticketId}: createdAt=${createdAt}, status=${status}`,
         );

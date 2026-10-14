@@ -47,6 +47,7 @@ export interface Ticket {
   proceededAt?: number | null; // when case was transferred to another employee
   jobTitleForProceed?: string | null; // job title selected when proceeding
   employeeStartedAt?: number | null; // when the current employee started working on this case (from employee_case_performance)
+  employeeActiveDurationSeconds?: number | null;
   // Auto-expiration field
   expiredAt?: number | null;
   // Document tracking for archiever

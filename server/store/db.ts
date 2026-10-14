@@ -7,6 +7,7 @@ import type {
   WindowState,
 } from "../../shared/api";
 import { formatTicketCode } from "../../shared/api";
+import { calculateActiveDurationSeconds } from "../../shared/time";
 
 export const isDbEnabled = true; // DB-only mode - no in-memory fallback
 
@@ -2093,21 +2094,29 @@ export async function compileAndStoreProgressFlow(
       [ticketId],
     );
 
-    let totalHoldDurationSeconds = 0;
     const holds = holdsRes.rows.map((row: any) => {
-      const durationSeconds = row.hold_duration_seconds || 0;
-      totalHoldDurationSeconds += durationSeconds;
+      const heldAt = Math.round(Number(row.held_at));
+      const resumedAt = row.resumed_at
+        ? Math.round(Number(row.resumed_at))
+        : null;
       return {
         id: row.id,
         ticketId: row.ticket_id,
         heldByUserId: row.held_by_user_id,
         subject: row.subject,
         description: row.description,
-        heldAt: Math.round(Number(row.held_at)),
-        resumedAt: row.resumed_at ? Math.round(Number(row.resumed_at)) : null,
-        holdDurationSeconds: durationSeconds,
+        heldAt,
+        resumedAt,
+        holdDurationSeconds: Math.max(
+          0,
+          Math.floor(((resumedAt ?? Date.now()) - heldAt) / 1000),
+        ),
       };
     });
+    const totalHoldDurationSeconds = holds.reduce(
+      (total, hold) => total + hold.holdDurationSeconds,
+      0,
+    );
 
     // Fetch ticket info for context
     const ticketRes = await client.query(
@@ -2197,11 +2206,12 @@ export async function compileAndStoreProgressFlow(
         return; // Skip if this is the archiver's employee record
       }
 
-      const durationMs =
-        row.started_at && row.ended_at
-          ? Math.round(Number(row.ended_at)) -
-            Math.round(Number(row.started_at))
-          : null;
+      const durationSeconds = calculateActiveDurationSeconds(
+        row.started_at ? Math.round(Number(row.started_at)) : null,
+        row.ended_at ? Math.round(Number(row.ended_at)) : Date.now(),
+        holds,
+      );
+      const durationMs = durationSeconds == null ? null : durationSeconds * 1000;
 
       flowSteps.push({
         order: stepOrder++,
@@ -2232,27 +2242,20 @@ export async function compileAndStoreProgressFlow(
       }
     }
 
-    // Calculate total duration excluding hold time
-    let totalDurationMs: number | null = null;
-    if (
-      flowSteps.length > 0 &&
-      flowSteps[0].startedAt &&
-      flowSteps[flowSteps.length - 1].endedAt
-    ) {
-      totalDurationMs =
-        flowSteps[flowSteps.length - 1].endedAt - flowSteps[0].startedAt;
-      // Subtract hold duration from total
-      if (totalHoldDurationSeconds > 0) {
-        totalDurationMs -= totalHoldDurationSeconds * 1000;
-      }
-    }
+    const caseCreatedAt = Math.round(Number(ticketInfo.created_at));
+    const caseEndedAt = ticketInfo.completed_at
+      ? Math.round(Number(ticketInfo.completed_at))
+      : Date.now();
+    const totalDurationMs = caseCreatedAt
+      ? Math.max(0, caseEndedAt - caseCreatedAt)
+      : null;
 
     const progressFlow = {
       ticketId,
       ticketCode: ticketInfo.code,
       service: ticketInfo.service,
       serviceCategory: ticketInfo.service_category,
-      caseCreatedAt: Math.round(Number(ticketInfo.created_at)),
+      caseCreatedAt,
       caseCompletedAt: Math.round(Number(ticketInfo.completed_at)),
       totalSteps: flowSteps.length,
       steps: flowSteps,

@@ -801,7 +801,8 @@ function WorkflowCard({
                   <p className="text-3xl font-bold text-amber-600 dark:text-amber-400 mt-2">
                     {formatSeconds(
                       workflow.items.reduce(
-                        (sum, item) => sum + (item.durationSeconds || 0),
+                        (sum, item) =>
+                          sum + (!item.isTeller ? item.durationSeconds || 0 : 0),
                         0,
                       ),
                     )}
@@ -868,13 +869,21 @@ function WorkflowCard({
                     Avg Step Time
                   </p>
                   <p className="text-3xl font-bold text-cyan-600 dark:text-cyan-400 mt-2">
-                    {workflow.totalDuration && workflow.items.length > 0
-                      ? formatSeconds(
-                          Math.round(
-                            workflow.totalDuration / workflow.items.length,
-                          ),
-                        )
-                      : "N/A"}
+                    {(() => {
+                      const steps = workflow.items.filter(
+                        (item) => !item.isTeller && item.durationSeconds != null,
+                      );
+                      return steps.length > 0
+                        ? formatSeconds(
+                            Math.round(
+                              steps.reduce(
+                                (sum, item) => sum + (item.durationSeconds || 0),
+                                0,
+                              ) / steps.length,
+                            ),
+                          )
+                        : "N/A";
+                    })()}
                   </p>
                 </div>
               </div>

@@ -12,6 +12,7 @@ import {
   updateServiceDb,
   deleteServiceDb,
 } from "../store/db";
+import { EMPLOYEE_ACTIVE_DURATION_SQL } from "../utils/timing";
 import type {
   GetQueueSettingsResponse,
   UpdateQueueSettingsRequest,
@@ -431,9 +432,9 @@ export const getEmployeeStats: RequestHandler = async (_req, res) => {
     try {
       const avgDurationRes = await p.query(
         `SELECT
-          ROUND(AVG(EXTRACT(EPOCH FROM (ended_at - started_at))))::int as avg_duration
-        FROM employee_case_performance
-        WHERE ended_at IS NOT NULL AND started_at IS NOT NULL`,
+          ROUND(AVG(${EMPLOYEE_ACTIVE_DURATION_SQL}))::int as avg_duration
+        FROM employee_case_performance ecp
+        WHERE ecp.ended_at IS NOT NULL AND ecp.started_at IS NOT NULL`,
       );
       avgDuration = avgDurationRes.rows[0]?.avg_duration || null;
     } catch (err) {
@@ -789,8 +790,8 @@ export const getOverallAnalytics: RequestHandler = async (_req, res) => {
         COUNT(ecp.id) as total_cases_started,
         SUM(CASE WHEN ecp.status = 'completed' THEN 1 ELSE 0 END) as cases_completed,
         SUM(CASE WHEN ecp.status = 'proceeded' THEN 1 ELSE 0 END) as cases_proceeded,
-        AVG(EXTRACT(EPOCH FROM (ecp.ended_at - ecp.started_at))) as avg_case_time_seconds,
-        SUM(EXTRACT(EPOCH FROM (ecp.ended_at - ecp.started_at))) as total_time_spent_seconds
+        AVG(${EMPLOYEE_ACTIVE_DURATION_SQL}) as avg_case_time_seconds,
+        SUM(${EMPLOYEE_ACTIVE_DURATION_SQL}) as total_time_spent_seconds
       FROM employee_case_performance ecp
       LEFT JOIN users u ON ecp.employee_id = u.id
       WHERE ecp.started_at IS NOT NULL AND ecp.ended_at IS NOT NULL
