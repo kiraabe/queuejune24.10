@@ -555,7 +555,7 @@ export default function Reception() {
                     onChange={(event) => setOwnerName(event.target.value)}
                     placeholder={t("reception.ownerPlaceholder")}
                     required
-                    className="h-10"
+                    className="h-10 bg-white border-border shadow-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
                   />
                 </div>
                 <div className="grid gap-2">
@@ -563,7 +563,7 @@ export default function Reception() {
                     {t("reception.woredaLabel")}
                   </Label>
                   <Select value={woreda} onValueChange={setWoreda}>
-                    <SelectTrigger id="woreda" className="h-10">
+                    <SelectTrigger id="woreda" className="h-10 bg-white border-border shadow-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15">
                       <SelectValue placeholder={t("reception.woredaPlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
@@ -594,7 +594,7 @@ export default function Reception() {
                     }
                     placeholder="Enter certificate serial number"
                     required
-                    className="h-10"
+                    className="h-10 bg-white border-border shadow-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
                   />
                 </div>
                 <div className="grid gap-2">
@@ -612,7 +612,7 @@ export default function Reception() {
                     }
                     placeholder="Enter certificate number"
                     required
-                    className="h-10"
+                    className="h-10 bg-white border-border shadow-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
                   />
                 </div>
               </div>
@@ -627,7 +627,7 @@ export default function Reception() {
                     value={selectedCategory}
                     onValueChange={setSelectedCategory}
                   >
-                    <SelectTrigger id="category" className="h-10">
+                    <SelectTrigger id="category" className="h-10 bg-white border-border shadow-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15">
                       <SelectValue placeholder={t("reception.categoryPlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
