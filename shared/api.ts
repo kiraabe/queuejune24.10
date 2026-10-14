@@ -243,6 +243,8 @@ export interface AuthUser {
   email?: string; // email address
   department?: string; // department name
   position?: string; // job position (for future use)
+  createdAt?: number | null; // account creation time (ms epoch)
+  lastLoginAt?: number | null; // time of the current login (ms epoch)
 }
 export interface LoginRequest {
   username: string;

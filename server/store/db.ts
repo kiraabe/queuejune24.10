@@ -383,6 +383,13 @@ export async function initDb() {
     revoked_at timestamptz,
     revoke_reason text
   );`);
+    await p.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at timestamptz;`);
+    await p.query(`
+      UPDATE users u SET created_at = s.first_seen
+      FROM (SELECT user_id, MIN(created_at) AS first_seen FROM user_sessions GROUP BY user_id) s
+      WHERE u.id = s.user_id AND u.created_at IS NULL;
+    `);
+    await p.query(`ALTER TABLE users ALTER COLUMN created_at SET DEFAULT now();`);
     // Rename last_seen_at to last_activity_at if needed
     try {
       await p.query(`

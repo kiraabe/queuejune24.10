@@ -71,6 +71,7 @@ function toAuthUserFromRow(row: {
   phone?: string | null;
   email?: string | null;
   department?: string | null;
+  created_at?: Date | string | null;
 }): AuthUser {
   return {
     id: row.id,
@@ -83,6 +84,7 @@ function toAuthUserFromRow(row: {
     phone: row.phone ?? undefined,
     email: row.email ?? undefined,
     department: row.department ?? undefined,
+    createdAt: row.created_at ? new Date(row.created_at).getTime() : null,
   };
 }
 
@@ -959,7 +961,7 @@ export const me: RequestHandler = async (req, res) => {
   // Fetch full user data from database to include email, phone, department, etc.
   const p = getPool();
   const { rows } = await p.query(
-    `SELECT u.id, u.username, u.password_hash, u.window_id, u.disabled, u.full_name, u.job_title_id, u.phone, u.email, u.department
+    `SELECT u.id, u.username, u.password_hash, u.window_id, u.disabled, u.full_name, u.job_title_id, u.phone, u.email, u.department, u.created_at
      FROM users u
      WHERE u.id=$1 LIMIT 1`,
     [session.userId],
@@ -980,6 +982,7 @@ export const me: RequestHandler = async (req, res) => {
   const user = toAuthUserFromRow(userRow);
   user.role = session.activeRole;
   user.roles = [session.activeRole]; // Set roles to current active role
+  user.lastLoginAt = session.createdAt.getTime();
 
   res.json({ user } as MeResponse);
 };

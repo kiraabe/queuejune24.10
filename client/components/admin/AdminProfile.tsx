@@ -148,11 +148,13 @@ function AccountTab({
       : []),
     {
       label: "Member since",
-      value: format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), "MMM d, yyyy"),
+      value: user.createdAt ? format(new Date(user.createdAt), "MMM d, yyyy") : "Unknown",
     },
     {
       label: "Last login",
-      value: format(new Date(), "MMM d, yyyy · HH:mm"),
+      value: user.lastLoginAt
+        ? format(new Date(user.lastLoginAt), "MMM d, yyyy · HH:mm")
+        : "N/A",
     },
   ];
 
