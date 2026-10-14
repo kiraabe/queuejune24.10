@@ -33,7 +33,7 @@ const SiteHeader = () => {
       <div className="w-full px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4 sm:gap-6 py-3 sm:py-4">
         <Link to="/" className="flex items-center gap-2 min-w-0 flex-shrink-0">
           <img
-            src="/logos/aa-landholding-logo.webp"
+            src="/logos/lhpria-logo.webp"
             alt="CTTCS Solution logo"
             className="h-9 sm:h-10 w-9 sm:w-10 rounded-full object-cover flex-shrink-0"
           />
