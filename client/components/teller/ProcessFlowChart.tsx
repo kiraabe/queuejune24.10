@@ -62,7 +62,7 @@ export function ProcessFlowChart({
   }
 
   const totalDuration = steps.reduce((sum, step) => {
-    return sum + (step.durationSeconds || 0);
+    return sum + (!step.isTeller ? step.durationSeconds || 0 : 0);
   }, 0);
 
   const formatTotalTime = (seconds: number) => {

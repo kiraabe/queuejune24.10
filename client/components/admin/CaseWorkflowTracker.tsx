@@ -429,6 +429,10 @@ function WorkflowCard({
   const [remainingTime, setRemainingTime] = useState<string>("—");
 
   const HOLD_EXPIRATION_SECONDS = 72 * 60 * 60; // 72 hours
+  const totalEmployeeTimeSeconds = workflow.items.reduce(
+    (sum, item) => sum + (!item.isTeller ? item.durationSeconds || 0 : 0),
+    0,
+  );
 
   // Get standard time for selected services
   const getSelectedServicesStandardTime = () => {
@@ -447,7 +451,7 @@ function WorkflowCard({
 
   // Check if duration exceeds standard time (uses selected services if available, fallback to category)
   const getStandardTimeStatus = () => {
-    if (!workflow.totalDuration) {
+    if (totalEmployeeTimeSeconds <= 0) {
       return {
         exceeds: false,
         performanceLevel: "on_time" as const,
@@ -464,7 +468,7 @@ function WorkflowCard({
       if (totalMinutes > 0) {
         const standardSeconds = totalMinutes * 60;
         // Formula: (standard_time / actual_time) * 65, clamped to [0, 100]
-        const performance = Math.max(0, Math.min(100, (standardSeconds / workflow.totalDuration) * 65));
+        const performance = Math.max(0, Math.min(100, (standardSeconds / totalEmployeeTimeSeconds) * 65));
         const percentageOfStandard = Math.round(performance);
 
         let performanceLevel: "on_time" | "slightly_over" | "moderately_over" | "significantly_over";
@@ -478,7 +482,7 @@ function WorkflowCard({
           performanceLevel = "significantly_over";
         }
 
-        const exceeds = workflow.totalDuration > standardSeconds;
+        const exceeds = totalEmployeeTimeSeconds > standardSeconds;
         return {
           exceeds,
           performanceLevel,
@@ -496,7 +500,7 @@ function WorkflowCard({
       if (standardMinutes) {
         const standardSeconds = standardMinutes * 60;
         // Formula: (standard_time / actual_time) * 65, clamped to [0, 100]
-        const performance = Math.max(0, Math.min(100, (standardSeconds / workflow.totalDuration) * 65));
+        const performance = Math.max(0, Math.min(100, (standardSeconds / totalEmployeeTimeSeconds) * 65));
         const percentageOfStandard = Math.round(performance);
 
         let performanceLevel: "on_time" | "slightly_over" | "moderately_over" | "significantly_over";
@@ -510,7 +514,7 @@ function WorkflowCard({
           performanceLevel = "significantly_over";
         }
 
-        const exceeds = workflow.totalDuration > standardSeconds;
+        const exceeds = totalEmployeeTimeSeconds > standardSeconds;
         return {
           exceeds,
           performanceLevel,
@@ -774,7 +778,7 @@ function WorkflowCard({
           >
             {isExpanded
               ? "Hide Process Flow"
-              : `Show Process Flow (${workflow.items.length} steps • ${formatSeconds(workflow.totalDuration)})`}
+              : `Show Process Flow (${workflow.items.length} steps • ${formatSeconds(totalEmployeeTimeSeconds)})`}
           </Button>
 
           {/* Process Flow Chart */}
@@ -800,11 +804,7 @@ function WorkflowCard({
                   </p>
                   <p className="text-3xl font-bold text-amber-600 dark:text-amber-400 mt-2">
                     {formatSeconds(
-                      workflow.items.reduce(
-                        (sum, item) =>
-                          sum + (!item.isTeller ? item.durationSeconds || 0 : 0),
-                        0,
-                      ),
+                      totalEmployeeTimeSeconds,
                     )}
                   </p>
                 </div>
@@ -897,7 +897,7 @@ function WorkflowCard({
                 // Always show the comparison section
                 if (standardSeconds) {
                   // Formula: (standard_time / actual_time) * 65, clamped to [0, 100]
-                  const performance = Math.max(0, Math.min(100, (standardSeconds / (workflow.totalDuration || 1)) * 65));
+                  const performance = Math.max(0, Math.min(100, (standardSeconds / totalEmployeeTimeSeconds) * 65));
                   const percentageOfStandard = Math.round(performance);
 
                   // Determine background color based on performance level
@@ -934,7 +934,7 @@ function WorkflowCard({
 
                   // Determine status message and color
                   const getStatusMessage = () => {
-                    const timeDiffSeconds = (workflow.totalDuration || 0) - standardSeconds;
+                    const timeDiffSeconds = totalEmployeeTimeSeconds - standardSeconds;
                     const overTime = Math.max(0, timeDiffSeconds);
 
                     switch (performanceLevel) {
@@ -1052,7 +1052,7 @@ function WorkflowCard({
                             <div className="flex-1 flex items-center gap-2">
                               <div
                                 className="flex-1 relative h-4 rounded-full shadow-sm overflow-visible group cursor-help"
-                                title={`${performanceLevel === "on_time" ? "On Time" : performanceLevel === "slightly_over" ? "Slightly Over" : performanceLevel === "moderately_over" ? "Moderately Over" : "Significantly Over"}: ${percentageOfStandard}% | Actual: ${formatSeconds(workflow.totalDuration || 0)} | Standard: ${formatSeconds(standardSeconds)}`}
+                                title={`${performanceLevel === "on_time" ? "On Time" : performanceLevel === "slightly_over" ? "Slightly Over" : performanceLevel === "moderately_over" ? "Moderately Over" : "Significantly Over"}: ${percentageOfStandard}% | Actual: ${formatSeconds(totalEmployeeTimeSeconds)} | Standard: ${formatSeconds(standardSeconds)}`}
                               >
                                 {/* Gradient background with color stops for performance levels */}
                                 <div
@@ -1126,7 +1126,7 @@ function WorkflowCard({
                                     {percentageOfStandard}% of standard
                                   </div>
                                   <div className="text-xs opacity-90">
-                                    Actual: {formatSeconds(workflow.totalDuration || 0)}
+                                    Actual: {formatSeconds(totalEmployeeTimeSeconds)}
                                   </div>
                                   <div className="text-xs opacity-90">
                                     Standard: {formatSeconds(standardSeconds)}
