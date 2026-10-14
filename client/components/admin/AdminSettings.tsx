@@ -1,15 +1,7 @@
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -18,10 +10,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Save } from "lucide-react";
+import { AlertCircle, Clock, Gauge, Save, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import LicenseManagement from "./LicenseManagement";
 import PINLock from "./PINLock";
+import { SettingRow, SettingsSection } from "./settings/SettingsSection";
 import type {
   GetQueueSettingsResponse,
   UpdateQueueSettingsResponse,
@@ -149,7 +142,7 @@ export default function AdminSettings() {
           <TabsTrigger value="licenses">Licenses</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="queue" className="space-y-4">
+        <TabsContent value="queue" className="space-y-6">
           {unsavedChanges && (
             <Alert>
               <AlertCircle className="h-4 w-4" />
@@ -159,93 +152,107 @@ export default function AdminSettings() {
             </Alert>
           )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Queue Configuration</CardTitle>
-              <CardDescription>
-                Configure how the queue system operates
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-          {/* Max Tickets Per Day */}
-          <div className="space-y-2">
-            <Label htmlFor="maxTickets">Maximum Tickets Per Day</Label>
-            <Input
-              id="maxTickets"
-              type="number"
-              value={queueSettings.maxTicketsPerDay}
-              onChange={(e) => {
-                setQueueSettings({
-                  ...queueSettings,
-                  maxTicketsPerDay: parseInt(e.target.value),
-                });
-                setUnsavedChanges(true);
-              }}
-              min={1}
-              max={1000}
-            />
-            <p className="text-xs text-muted-foreground">
-              Limit new tickets when this threshold is reached
-            </p>
-          </div>
-
-          {/* Daily Reset Time */}
-          <div className="space-y-2">
-            <Label htmlFor="resetTime">Daily Reset Time (UTC)</Label>
-            <Input
-              id="resetTime"
-              type="time"
-              value={queueSettings.dailyResetTime}
-              onChange={(e) => {
-                setQueueSettings({
-                  ...queueSettings,
-                  dailyResetTime: e.target.value,
-                });
-                setUnsavedChanges(true);
-              }}
-            />
-            <p className="text-xs text-muted-foreground">
-              Time when queue counters reset daily
-            </p>
-          </div>
-
-          {/* FIFO Mode */}
-          <div className="space-y-2">
-            <Label>Queue Behavior</Label>
-            <Select
-              value={queueSettings.fifoMode ? "fifo" : "priority"}
-              onValueChange={(value) => {
-                setQueueSettings({
-                  ...queueSettings,
-                  fifoMode: value === "fifo",
-                });
-                setUnsavedChanges(true);
-              }}
+          <div className="grid gap-6 lg:grid-cols-2">
+            <SettingsSection
+              icon={Gauge}
+              title="Queue Limits"
+              description="Set the maximum number of tickets allowed per day."
             >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="fifo">First-In-First-Out (FIFO)</SelectItem>
-                <SelectItem value="priority">
-                  Priority-Based (Future)
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              How customers are selected to be served
-            </p>
+              <SettingRow
+                htmlFor="maxTickets"
+                label="Maximum Tickets Per Day"
+                description="Limit new tickets when this threshold is reached"
+              >
+                <Input
+                  id="maxTickets"
+                  type="number"
+                  className="tabular-nums"
+                  value={queueSettings.maxTicketsPerDay}
+                  onChange={(e) => {
+                    setQueueSettings({
+                      ...queueSettings,
+                      maxTicketsPerDay: parseInt(e.target.value),
+                    });
+                    setUnsavedChanges(true);
+                  }}
+                  min={1}
+                  max={1000}
+                />
+              </SettingRow>
+            </SettingsSection>
+
+            <SettingsSection
+              icon={Clock}
+              title="Daily Reset Schedule"
+              description="Choose when the queue counters reset each day."
+            >
+              <SettingRow
+                htmlFor="resetTime"
+                label="Daily Reset Time (UTC)"
+                description="Time when queue counters reset daily"
+              >
+                <Input
+                  id="resetTime"
+                  type="time"
+                  className="tabular-nums"
+                  value={queueSettings.dailyResetTime}
+                  onChange={(e) => {
+                    setQueueSettings({
+                      ...queueSettings,
+                      dailyResetTime: e.target.value,
+                    });
+                    setUnsavedChanges(true);
+                  }}
+                />
+              </SettingRow>
+            </SettingsSection>
+
+            <SettingsSection
+              icon={SlidersHorizontal}
+              title="Queue Processing Behavior"
+              description="Define how customers are selected and served."
+              className="lg:col-span-2"
+            >
+              <SettingRow
+                htmlFor="queueBehavior"
+                label="Queue Behavior"
+                description="How customers are selected to be served"
+              >
+                <Select
+                  value={queueSettings.fifoMode ? "fifo" : "priority"}
+                  onValueChange={(value) => {
+                    setQueueSettings({
+                      ...queueSettings,
+                      fifoMode: value === "fifo",
+                    });
+                    setUnsavedChanges(true);
+                  }}
+                >
+                  <SelectTrigger id="queueBehavior">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fifo">
+                      First-In-First-Out (FIFO)
+                    </SelectItem>
+                    <SelectItem value="priority">
+                      Priority-Based (Future)
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </SettingRow>
+            </SettingsSection>
           </div>
 
-          <Button
-            onClick={handleSaveSettings}
-            disabled={!unsavedChanges || isSaving || isLoading}
-          >
-            <Save className="mr-2 h-4 w-4" />
-            {isSaving ? "Saving..." : "Save Queue Settings"}
-          </Button>
-            </CardContent>
-          </Card>
+          <div className="flex justify-end">
+            <Button
+              onClick={handleSaveSettings}
+              disabled={!unsavedChanges || isSaving || isLoading}
+            >
+              <Save className="mr-2 h-4 w-4" />
+              {isSaving ? "Saving..." : "Save Queue Settings"}
+            </Button>
+          </div>
         </TabsContent>
 
         <TabsContent value="licenses" className="space-y-4">
