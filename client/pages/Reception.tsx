@@ -432,8 +432,10 @@ export default function Reception() {
   }, [selectedCategory]);
 
   const selectedServiceLabel = useMemo(() => {
-    const categoryId = generatedTicket?.serviceCategory ?? selectedCategory;
-    const category = serviceCategories.find((cat) => cat.id === categoryId);
+    const categoryKey = generatedTicket?.serviceCategory ?? selectedCategory;
+    const category = serviceCategories.find(
+      (cat) => cat.id === categoryKey || cat.code === categoryKey,
+    );
     return category?.name ?? "Not specified";
   }, [generatedTicket?.serviceCategory, selectedCategory, serviceCategories]);
 
