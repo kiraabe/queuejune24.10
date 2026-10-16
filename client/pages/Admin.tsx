@@ -124,11 +124,18 @@ export default function Admin() {
         <div className="flex-1 container mx-auto px-4 py-6 pb-12">
           <div className="space-y-6">
             <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1">
-                <h1 className="text-2xl font-semibold text-foreground">Admin Panel</h1>
-                <p className="text-sm text-muted-foreground">
-                  Manage system operations, monitor queues, and configure settings
-                </p>
+              <div className="flex items-start gap-3">
+                <img
+                  src="/logos/lhpria-logo.webp"
+                  alt="STC Solution logo"
+                  className="h-10 w-10 shrink-0 rounded-full object-cover shadow-sm"
+                />
+                <div className="space-y-1">
+                  <h1 className="text-2xl font-semibold text-foreground">Admin Panel</h1>
+                  <p className="text-sm text-muted-foreground">
+                    Manage system operations, monitor queues, and configure settings
+                  </p>
+                </div>
               </div>
               <ProfileDropdown navItems={navItems} />
             </div>

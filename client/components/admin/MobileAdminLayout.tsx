@@ -27,9 +27,16 @@ export default function MobileAdminLayout({
     <div className="flex h-screen flex-col overflow-hidden bg-background">
       {/* Mobile/Tablet Header */}
       <div className="flex h-16 items-center justify-between border-b border-border px-4 bg-background">
-        <div>
-          <h1 className="text-lg font-bold tracking-tight">Admin Panel</h1>
-          <p className="text-xs text-muted-foreground">Management System</p>
+        <div className="flex items-center gap-3">
+          <img
+            src="/logos/lhpria-logo.webp"
+            alt="STC Solution logo"
+            className="h-9 w-9 shrink-0 rounded-full object-cover shadow-sm"
+          />
+          <div>
+            <h1 className="text-lg font-bold tracking-tight">Admin Panel</h1>
+            <p className="text-xs text-muted-foreground">Management System</p>
+          </div>
         </div>
         <ProfileDropdown navItems={navItems} />
       </div>

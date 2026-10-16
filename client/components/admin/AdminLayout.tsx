@@ -103,7 +103,12 @@ export default function AdminLayout({
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Mobile Top Bar */}
         <div className="flex h-14 sm:h-16 items-center justify-between border-b border-border px-4 sm:px-6 lg:hidden bg-background">
-          <div>
+          <div className="flex items-center gap-3">
+            <img
+              src="/logos/lhpria-logo.webp"
+              alt="STC Solution logo"
+              className="h-8 w-8 shrink-0 rounded-full object-cover shadow-sm"
+            />
             <h1 className="text-base sm:text-lg font-bold tracking-tight">Admin Panel</h1>
           </div>
           <Button
