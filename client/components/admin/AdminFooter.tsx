@@ -1,67 +1,41 @@
-import { useLanguage } from "@/hooks/use-language";
-import { Globe } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { APP_VERSION } from "@/lib/app-version";
 
 export default function AdminFooter() {
-  const { language, setLanguage } = useLanguage();
-
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-border bg-muted/30 mt-12">
+    <footer className="mt-12 border-t border-border bg-muted/30">
       <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          {/* Company Info */}
-          <div className="text-xs text-muted-foreground">
-            <span className="font-semibold text-foreground">STC Solution</span> • Standard time compliance
+        <div className="grid grid-cols-1 items-center gap-3 text-xs text-muted-foreground md:grid-cols-3 md:gap-4">
+          <div className="flex flex-wrap items-center justify-center gap-x-2 md:justify-start">
+            <span className="font-semibold text-foreground">STC Solution</span>
+            <span aria-hidden="true">•</span>
+            <span>v{APP_VERSION}</span>
           </div>
 
-          {/* Links */}
-          <div className="flex items-center gap-3">
+          <nav className="flex items-center justify-center gap-3">
             <a
               href="/admin/privacy"
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="transition-colors hover:text-foreground"
             >
               Privacy
             </a>
-            <span className="text-xs text-muted-foreground">•</span>
+            <span aria-hidden="true">•</span>
             <a
               href="/admin/terms"
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="transition-colors hover:text-foreground"
             >
               Terms
             </a>
-          </div>
+          </nav>
 
-          {/* Language Selector */}
-          <div className="flex items-center gap-2">
-            <Globe className="h-4 w-4 text-muted-foreground" />
-            <Select value={language} onValueChange={setLanguage}>
-              <SelectTrigger className="w-28 h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="en">English</SelectItem>
-                <SelectItem value="am">Amharic</SelectItem>
-                <SelectItem value="or">Oromo</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Copyright */}
-          <div className="text-xs text-muted-foreground">
+          <div className="text-center md:text-right">
             © {currentYear} Powered by{" "}
             <a
               href="https://ekd-tech-solutions.vercel.app/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-muted-foreground hover:text-primary transition-colors"
+              className="transition-colors hover:text-primary"
             >
               EKD Tech solutions
             </a>
