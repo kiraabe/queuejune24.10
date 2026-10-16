@@ -1,17 +1,25 @@
-import { ChevronDown, Globe } from "lucide-react";
+import { Check, ChevronDown, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LanguageSubMenu } from "@/components/profile/LanguageSubMenu";
-import { userMenuContentClass } from "@/components/profile/user-menu-styles";
-import { LANGUAGE_LABELS, useLanguage } from "@/hooks/use-language";
+import {
+  userMenuContentClass,
+  userMenuIconClass,
+  userMenuItemClass,
+} from "@/components/profile/user-menu-styles";
+import {
+  Language,
+  LANGUAGE_LABELS,
+  useLanguage,
+} from "@/hooks/use-language";
 import { cn } from "@/lib/utils";
 
 export function LanguageMenu({ className }: { className?: string }) {
-  const { language } = useLanguage();
+  const { language, setLanguage } = useLanguage();
 
   return (
     <DropdownMenu>
@@ -31,9 +39,27 @@ export function LanguageMenu({ className }: { className?: string }) {
         align="end"
         sideOffset={8}
         collisionPadding={12}
-        className={userMenuContentClass}
+        className={cn(userMenuContentClass, "w-52 border-slate-300")}
       >
-        <LanguageSubMenu />
+        {Object.entries(LANGUAGE_LABELS).map(([lang, label]) => {
+          const isActive = language === lang;
+          return (
+            <DropdownMenuItem
+              key={lang}
+              onSelect={() => setLanguage(lang as Language)}
+              className={cn(
+                userMenuItemClass,
+                "justify-between",
+                isActive && "font-medium text-primary",
+              )}
+            >
+              <span>{label}</span>
+              {isActive && (
+                <Check className={cn(userMenuIconClass, "text-primary")} aria-hidden="true" />
+              )}
+            </DropdownMenuItem>
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );
