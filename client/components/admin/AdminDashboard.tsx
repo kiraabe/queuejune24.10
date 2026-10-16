@@ -381,18 +381,32 @@ export default function AdminDashboard() {
   ];
 
   const [dismissedHealthLevel, setDismissedHealthLevel] = useState<string | null>(
-    () => localStorage.getItem(HEALTH_ALERT_DISMISSED_KEY),
+    () => {
+      try {
+        return localStorage.getItem(HEALTH_ALERT_DISMISSED_KEY);
+      } catch {
+        return null;
+      }
+    },
   );
 
   useEffect(() => {
     if (stats.systemHealth !== "healthy") return;
-    localStorage.removeItem(HEALTH_ALERT_DISMISSED_KEY);
     setDismissedHealthLevel(null);
+    try {
+      localStorage.removeItem(HEALTH_ALERT_DISMISSED_KEY);
+    } catch {
+      // Storage can be unavailable in sandboxed iframes
+    }
   }, [stats.systemHealth]);
 
   const dismissHealthAlert = () => {
-    localStorage.setItem(HEALTH_ALERT_DISMISSED_KEY, stats.systemHealth);
     setDismissedHealthLevel(stats.systemHealth);
+    try {
+      localStorage.setItem(HEALTH_ALERT_DISMISSED_KEY, stats.systemHealth);
+    } catch {
+      // Storage can be unavailable in sandboxed iframes
+    }
   };
 
   const renderMetricGrid = (
