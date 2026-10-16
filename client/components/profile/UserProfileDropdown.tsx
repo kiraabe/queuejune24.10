@@ -105,6 +105,14 @@ export function UserProfileDropdown() {
                 {initials}
               </AvatarFallback>
             </Avatar>
+            <div className="hidden sm:flex flex-col items-start gap-0.5">
+              <span className="text-sm font-medium leading-none truncate max-w-[150px]">
+                {user.fullName || user.username}
+              </span>
+              <span className="text-xs text-muted-foreground capitalize">
+                {user.role}
+              </span>
+            </div>
             <ChevronDown className="h-4 w-4 opacity-50" />
           </Button>
         </DropdownMenuTrigger>
