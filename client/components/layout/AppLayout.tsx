@@ -2,6 +2,7 @@ import { Outlet, useLocation } from "react-router-dom";
 
 import SiteFooter from "./SiteFooter";
 import SiteHeader from "./SiteHeader";
+import { ReceptionHeader } from "@/components/reception/ReceptionHeader";
 
 const AppLayout = () => {
   const { pathname } = useLocation();
@@ -9,11 +10,12 @@ const AppLayout = () => {
   const isEmployeePage = pathname.startsWith("/employee");
   const isArchieverPage = pathname.startsWith("/archiever");
   const isProfilePage = pathname === "/profile";
+  const isReceptionPage = pathname === "/reception";
   const hideNavigation = isAdminPage || isEmployeePage || isArchieverPage || isProfilePage;
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
-      {!hideNavigation && <SiteHeader />}
+      {isReceptionPage ? <ReceptionHeader /> : !hideNavigation && <SiteHeader />}
       <main className="flex-1">
         <Outlet />
       </main>

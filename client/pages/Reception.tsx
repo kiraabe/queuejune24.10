@@ -198,7 +198,7 @@ function TicketPreview({
   const noteLines: string[] = [];
 
   return (
-    <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 md:p-5 text-sm text-foreground">
+    <div className="rounded-xl border border-border/70 bg-muted/40 p-4 md:p-5 text-sm text-foreground">
       <p className="font-semibold text-xs sm:text-sm uppercase tracking-wide text-primary">
         {t("reception.preview")}
       </p>
@@ -538,17 +538,17 @@ export default function Reception() {
       className="lg:grid-cols-1"
     >
       <section className="w-full grid gap-6 py-4 md:py-6">
-        <Card className="w-full">
-          <CardHeader className="space-y-2 mb-6">
+        <Card className="w-full rounded-xl border-border/70 bg-white shadow-sm">
+          <CardHeader className="space-y-1 mb-4">
             <CardTitle className="flex items-center gap-2 text-lg">
               <ClipboardSignature className="h-5 w-5 text-primary shrink-0" />
               <span>{t("reception.issueTicket")}</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <form className="space-y-6" onSubmit={handleSubmit}>
+            <form className="space-y-5" onSubmit={handleSubmit}>
               {/* Name and Woreda fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4">
                 <div className="grid gap-2">
                   <Label htmlFor="owner-name" className="text-sm font-semibold text-foreground">
                     {t("reception.ownerLabel")}
@@ -588,7 +588,7 @@ export default function Reception() {
               </div>
 
               {/* Land Certificate fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-5 border-t border-border pt-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4 border-t border-border/70 pt-5">
                 <div className="grid gap-2">
                   <Label
                     htmlFor="land-cert-karta"
@@ -635,28 +635,30 @@ export default function Reception() {
 
               {/* Service Category section */}
               {serviceCategories.length > 0 && (
-                <div className="space-y-3 border-t border-border pt-5">
-                  <Label className="text-sm font-semibold text-foreground">
-                    {t("reception.categoryLabel")}
-                  </Label>
-                  <Select
-                    value={selectedCategory}
-                    onValueChange={setSelectedCategory}
-                  >
-                    <div className="relative">
-                      <Tag className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-                      <SelectTrigger id="category" className="h-10 pl-9 bg-white border-border shadow-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15">
-                        <SelectValue placeholder={t("reception.categoryPlaceholder")} />
-                      </SelectTrigger>
-                    </div>
-                    <SelectContent>
-                      {serviceCategories.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 border-t border-border/70 pt-5">
+                  <div className="grid gap-2">
+                    <Label className="text-sm font-semibold text-foreground">
+                      {t("reception.categoryLabel")}
+                    </Label>
+                    <Select
+                      value={selectedCategory}
+                      onValueChange={setSelectedCategory}
+                    >
+                      <div className="relative">
+                        <Tag className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                        <SelectTrigger id="category" className="h-10 pl-9 bg-white border-border shadow-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15">
+                          <SelectValue placeholder={t("reception.categoryPlaceholder")} />
+                        </SelectTrigger>
+                      </div>
+                      <SelectContent>
+                        {serviceCategories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               )}
 
@@ -714,7 +716,7 @@ export default function Reception() {
               {/* Submit button */}
               <Button
                 type="submit"
-                className="h-11 sm:h-12 w-full text-sm sm:text-base font-semibold shadow-md shadow-primary/25"
+                className="h-11 w-full bg-primary text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90"
                 disabled={!isFormValid || createTicket.isPending}
               >
                 {createTicket.isPending ? (
