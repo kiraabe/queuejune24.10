@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useTranslation } from "@/hooks/use-translation";
+import { APP_VERSION } from "@/lib/app-version";
 
 const SiteFooter = () => {
   const { t } = useTranslation();
@@ -8,9 +9,14 @@ const SiteFooter = () => {
     <footer className="relative overflow-hidden border-t border-border/60 bg-background/60">
       <div className="py-5">
         <div className="container flex flex-col gap-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
-          <span>
-            {t("common.copyright", { year: new Date().getFullYear() })}
-          </span>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span>
+              {t("common.copyright", { year: new Date().getFullYear() })}
+            </span>
+            <span className="text-xs text-muted-foreground/70">
+              STC Solution v{APP_VERSION}
+            </span>
+          </div>
           <div className="flex flex-wrap items-center gap-4">
             <Link
               className="transition-colors hover:text-primary"
