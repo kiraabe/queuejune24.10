@@ -131,8 +131,10 @@ export default function Admin() {
                   className="h-10 w-10 shrink-0 rounded-full object-cover shadow-sm"
                 />
                 <div className="space-y-1">
-                  <h1 className="text-2xl font-semibold text-foreground">STC Solution</h1>
-                  <p className="text-sm text-muted-foreground">Standard time compliance</p>
+                  <h1 className="text-2xl font-semibold text-foreground">Admin Panel</h1>
+                  <p className="text-sm text-muted-foreground">
+                    Manage system operations, monitor queues, and configure settings
+                  </p>
                 </div>
               </div>
               <ProfileDropdown navItems={navItems} />
