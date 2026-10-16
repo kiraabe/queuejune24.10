@@ -27,6 +27,7 @@ import {
   Pause,
   Award,
   Briefcase,
+  X,
 } from "lucide-react";
 import type {
   QueueSnapshot,
@@ -80,6 +81,8 @@ const formatSeconds = (seconds: number | null) => {
     return `${secs}sec`;
   }
 };
+
+const HEALTH_ALERT_DISMISSED_KEY = "admin-dashboard-health-alert-dismissed";
 
 const healthBadgeClass: Record<DashboardStats["systemHealth"], string> = {
   healthy: "border-emerald-200 bg-emerald-50 text-emerald-700",
@@ -377,6 +380,21 @@ export default function AdminDashboard() {
     },
   ];
 
+  const [dismissedHealthLevel, setDismissedHealthLevel] = useState<string | null>(
+    () => localStorage.getItem(HEALTH_ALERT_DISMISSED_KEY),
+  );
+
+  useEffect(() => {
+    if (stats.systemHealth !== "healthy") return;
+    localStorage.removeItem(HEALTH_ALERT_DISMISSED_KEY);
+    setDismissedHealthLevel(null);
+  }, [stats.systemHealth]);
+
+  const dismissHealthAlert = () => {
+    localStorage.setItem(HEALTH_ALERT_DISMISSED_KEY, stats.systemHealth);
+    setDismissedHealthLevel(stats.systemHealth);
+  };
+
   const renderMetricGrid = (
     metrics: typeof employeeMetrics,
     columns: string,
@@ -390,7 +408,8 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      {stats.systemHealth !== "healthy" && (
+      {stats.systemHealth !== "healthy" &&
+        dismissedHealthLevel !== stats.systemHealth && (
         <Alert
           className={
             stats.systemHealth === "critical"
@@ -398,8 +417,16 @@ export default function AdminDashboard() {
               : "border-amber-200 bg-amber-50 text-amber-900"
           }
         >
+          <button
+            type="button"
+            onClick={dismissHealthAlert}
+            aria-label="Dismiss alert"
+            className="absolute right-3 top-3 rounded-md p-1 opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <X className="h-4 w-4" aria-hidden="true" />
+          </button>
           <AlertCircle className="h-4 w-4" aria-hidden="true" />
-          <AlertDescription>
+          <AlertDescription className="pr-6">
             {stats.systemHealth === "critical"
               ? `Critical: Longest wait time is ${formatSeconds(stats.longestWaitTime)}. Consider opening additional windows.`
               : `Warning: Longest wait time is ${formatSeconds(stats.longestWaitTime)}. Monitor queue status closely.`}
