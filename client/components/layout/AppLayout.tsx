@@ -2,20 +2,26 @@ import { Outlet, useLocation } from "react-router-dom";
 
 import SiteFooter from "./SiteFooter";
 import SiteHeader from "./SiteHeader";
-import { ReceptionHeader } from "@/components/reception/ReceptionHeader";
+import { ConsoleHeader } from "./ConsoleHeader";
 
 const AppLayout = () => {
   const { pathname } = useLocation();
   const isAdminPage = pathname.startsWith("/admin");
-  const isEmployeePage = pathname.startsWith("/employee");
-  const isArchieverPage = pathname.startsWith("/archiever");
   const isProfilePage = pathname === "/profile";
-  const isReceptionPage = pathname === "/reception";
-  const hideNavigation = isAdminPage || isEmployeePage || isArchieverPage || isProfilePage;
+  const isConsolePage =
+    pathname === "/reception" ||
+    pathname.startsWith("/teller") ||
+    pathname.startsWith("/archiever") ||
+    pathname.startsWith("/employee");
+  const hideNavigation = isAdminPage || isProfilePage;
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
-      {isReceptionPage ? <ReceptionHeader /> : !hideNavigation && <SiteHeader />}
+      {isConsolePage ? (
+        <ConsoleHeader />
+      ) : (
+        !hideNavigation && <SiteHeader />
+      )}
       <main className="flex-1">
         <Outlet />
       </main>

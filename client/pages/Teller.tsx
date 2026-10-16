@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { ConsoleShell } from "@/components/layout/ConsoleShell";
-import { UserProfileDropdown } from "@/components/profile/UserProfileDropdown";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -427,11 +426,7 @@ export default function Teller() {
   // FIFO mode active: no per-window service selection
 
   return (
-    <ConsoleShell
-      title="Teller Console"
-      className="lg:grid-cols-1"
-      action={<UserProfileDropdown />}
-    >
+    <ConsoleShell title="Teller Console" className="lg:grid-cols-1">
       <div className="w-full space-y-6">
         {/* Window Controls */}
         <div className="w-full">
@@ -444,7 +439,7 @@ export default function Teller() {
             {windowsQuery.data?.map((w) => (
               <Card
                 key={w.id}
-                className={`cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                className={`cursor-pointer rounded-xl border-border/70 bg-white shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   selectedWindowId === w.id
                     ? "border-primary bg-primary/5"
                     : "hover:border-primary/40"

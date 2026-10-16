@@ -18,7 +18,6 @@ import { useTranslation } from "@/hooks/use-translation";
 import { toast } from "sonner";
 import { CaseActionDialog } from "@/components/employee/CaseActionDialog";
 import { HoldCaseDialog } from "@/components/employee/HoldCaseDialog";
-import { UserProfileDropdown } from "@/components/profile/UserProfileDropdown";
 import type {
   Ticket,
   ListUsersResponse,
@@ -916,12 +915,11 @@ export default function Employee() {
               {t("employee.subtitle")}
             </p>
           </div>
-          <UserProfileDropdown />
         </div>
 
         {/* Stats Cards */}
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-          <Card>
+          <Card className="rounded-xl border-border/70 bg-white shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 {t("employee.received")}
@@ -936,7 +934,7 @@ export default function Employee() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="rounded-xl border-border/70 bg-white shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 {t("employee.completed")}
@@ -951,7 +949,7 @@ export default function Employee() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="rounded-xl border-border/70 bg-white shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 {t("employee.proceeded")}
@@ -968,7 +966,7 @@ export default function Employee() {
         </div>
 
         {/* Cases Tab View */}
-        <Card>
+        <Card className="rounded-xl border-border/70 bg-white shadow-sm">
           <CardHeader>
             <CardTitle>{t("employee.cases")}</CardTitle>
             <CardDescription>

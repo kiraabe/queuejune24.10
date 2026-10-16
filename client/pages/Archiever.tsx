@@ -8,7 +8,6 @@ import { MyActiveWorkIndicator } from "@/components/archiever/MyActiveWorkIndica
 import { ArchivedTicketsHistory } from "@/components/archiever/ArchivedTicketsHistory";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
-import { UserProfileDropdown } from "@/components/profile/UserProfileDropdown";
 import { useTranslation } from "@/hooks/use-translation";
 import type { JobTitle } from "@shared/api";
 
@@ -76,10 +75,7 @@ export default function Archiever() {
   };
 
   return (
-    <ConsoleShell
-      title={headerTitle}
-      action={<UserProfileDropdown />}
-    >
+    <ConsoleShell title={headerTitle}>
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         {/* Main content area - 3 columns */}
         <div className="lg:col-span-3">
