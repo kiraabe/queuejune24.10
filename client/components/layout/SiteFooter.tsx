@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import LanguageSwitch from "./LanguageSwitch";
 import { useTranslation } from "@/hooks/use-translation";
 
 const SiteFooter = () => {
@@ -29,7 +28,6 @@ const SiteFooter = () => {
               <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
               {t("common.liveStatus")}
             </a>
-            <LanguageSwitch />
           </div>
         </div>
       </div>

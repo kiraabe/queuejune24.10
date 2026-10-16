@@ -1,20 +1,18 @@
 export function TrackHeader() {
   return (
-    <header className="w-full border-b border-border/70 bg-white">
-      <div className="flex items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
-        <img
-          src="/logos/lhpria-logo.webp"
-          alt="STC Solution logo"
-          className="h-9 w-9 flex-shrink-0 rounded-full object-cover"
-        />
-        <div className="flex min-w-0 flex-col">
-          <span className="font-display text-sm font-semibold tracking-tight text-slate-900">
-            STC Solution
-          </span>
-          <span className="text-xs text-slate-500">
-            Standard time compliance
-          </span>
-        </div>
+    <header className="flex w-full flex-col items-center gap-2 px-4 pt-8 sm:pt-10">
+      <img
+        src="/logos/lhpria-logo.webp"
+        alt="STC Solution logo"
+        className="h-12 w-12 rounded-full object-cover shadow-sm"
+      />
+      <div className="flex flex-col items-center">
+        <span className="font-display text-base font-semibold tracking-tight text-slate-900">
+          STC Solution
+        </span>
+        <span className="text-xs text-slate-500">
+          Standard time compliance
+        </span>
       </div>
     </header>
   );

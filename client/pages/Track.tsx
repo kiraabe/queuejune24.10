@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   CheckCircle2,
   Clock4,
+  Ticket as TicketIcon,
   XCircle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -296,7 +297,8 @@ export default function Track() {
               <CardContent className="p-6 sm:p-8">
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label htmlFor="ticket-code" className="text-sm font-semibold text-slate-900">
+                  <label htmlFor="ticket-code" className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                    <TicketIcon className="h-4 w-4 text-primary" aria-hidden="true" />
                     Ticket Number
                   </label>
                   <input
