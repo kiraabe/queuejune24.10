@@ -14,7 +14,9 @@ const AppLayout = () => {
     pathname.startsWith("/archiever") ||
     pathname.startsWith("/employee");
   const isTrackPage = pathname === "/track";
-  const hideNavigation = isAdminPage || isProfilePage || isTrackPage;
+  const isTicketStatusPage = pathname.startsWith("/tickets/");
+  const hideNavigation =
+    isAdminPage || isProfilePage || isTrackPage || isTicketStatusPage;
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">

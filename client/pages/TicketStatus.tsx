@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { useSSE } from "@/hooks/use-sse";
-import { TrackFooter } from "@/components/track/TrackFooter";
 import { TrackHeader } from "@/components/track/TrackHeader";
 import type { Ticket, TicketStatusResponse } from "@shared/api";
 
@@ -156,8 +155,6 @@ export default function TicketStatus() {
           </div>
         </section>
       </main>
-
-      <TrackFooter />
     </div>
   );
 }
