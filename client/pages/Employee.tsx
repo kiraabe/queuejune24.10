@@ -530,7 +530,28 @@ const TicketRow = ({ ticket, onComplete, onActionStart }: TicketRowProps) => {
     return `${hours}h ${minutes}m ${seconds}s`;
   };
 
-  const duration = ticket.employeeActiveDurationSeconds ?? null;
+  const isRunning =
+    ticket.employeeStartedAt != null &&
+    ticket.proceededAt == null &&
+    ticket.completedAt == null &&
+    !hasActiveHold;
+  const baseDuration = ticket.employeeActiveDurationSeconds ?? null;
+  const snapshotAt = useMemo(() => Date.now(), [baseDuration]);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!isRunning) return;
+    setNow(Date.now());
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, [isRunning]);
+
+  const duration =
+    baseDuration == null
+      ? null
+      : isRunning
+        ? baseDuration + Math.max(0, Math.floor((now - snapshotAt) / 1000))
+        : baseDuration;
 
   const statusTone: Tone =
     ticket.status === "done"
