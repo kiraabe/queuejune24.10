@@ -12,6 +12,9 @@ import { Button } from "@/components/ui/button";
 import { useSSE } from "@/hooks/use-sse";
 import type { Ticket, TicketStatusResponse } from "@shared/api";
 import { cn } from "@/lib/utils";
+import { TrackFooter } from "@/components/track/TrackFooter";
+import { TrackHeader } from "@/components/track/TrackHeader";
+import { TrackTrustRow } from "@/components/track/TrackTrustRow";
 
 async function fetchStatus(code: string): Promise<TicketStatusResponse> {
   const res = await fetch(`/api/tickets/${encodeURIComponent(code)}`);
@@ -275,20 +278,25 @@ export default function Track() {
   };
 
   return (
-    <div className="min-h-screen bg-background px-4 py-8 sm:py-12">
-      <div className="mx-auto w-full max-w-2xl">
+    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
+      <TrackHeader />
+      <main className="flex flex-1 justify-center px-4 py-10 sm:py-14">
+      <div className="mx-auto w-full max-w-xl">
         {state.stage === "input" ? (
-          <Card className="border-border/60 bg-card/90 shadow-xl">
-            <CardHeader className="space-y-3">
-              <CardTitle className="text-3xl">Track Your Ticket</CardTitle>
-              <p className="text-sm text-muted-foreground">
+          <>
+            <div className="text-center">
+              <h1 className="font-display text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+                Track Your <span className="text-primary">Ticket</span>
+              </h1>
+              <p className="mt-2 text-sm text-slate-600 sm:text-base">
                 Enter your ticket number to check your queue status in real time
               </p>
-            </CardHeader>
-            <CardContent>
+            </div>
+            <Card className="mt-8 rounded-xl border-border/70 bg-white shadow-sm">
+              <CardContent className="p-6 sm:p-8">
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label htmlFor="ticket-code" className="text-sm font-medium">
+                  <label htmlFor="ticket-code" className="text-sm font-semibold text-slate-900">
                     Ticket Number
                   </label>
                   <input
@@ -302,16 +310,18 @@ export default function Track() {
                     autoComplete="off"
                     autoFocus
                   />
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-slate-500">
                     You can enter the full format (S1-015) or just the number
                     (015)
                   </p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+            <TrackTrustRow />
+          </>
         ) : state.stage === "loading" ? (
-          <Card className="border-border/60 bg-card/90 shadow-xl">
+          <Card className="rounded-xl border-border/70 bg-white shadow-sm">
             <CardContent className="flex flex-col items-center justify-center py-12">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary/30 border-t-primary" />
               <p className="mt-4 text-muted-foreground">
@@ -320,7 +330,7 @@ export default function Track() {
             </CardContent>
           </Card>
         ) : state.stage === "error" ? (
-          <Card className="border-border/60 bg-card/90 shadow-xl">
+          <Card className="rounded-xl border-border/70 bg-white shadow-sm">
             <CardHeader className="space-y-3">
               <div className="flex items-center gap-3">
                 <AlertCircle className="h-6 w-6 text-red-600" />
@@ -342,7 +352,7 @@ export default function Track() {
             </CardContent>
           </Card>
         ) : state.ticket ? (
-          <Card className="border-border/60 bg-card/90 shadow-xl">
+          <Card className="rounded-xl border-border/70 bg-white shadow-sm">
             <CardHeader className="space-y-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-2xl">Your Ticket</CardTitle>
@@ -498,6 +508,8 @@ export default function Track() {
           </Card>
         ) : null}
       </div>
+      </main>
+      <TrackFooter />
     </div>
   );
 }
