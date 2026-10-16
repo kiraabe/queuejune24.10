@@ -452,6 +452,34 @@ const CaseHistoryRow = ({ ticket, userMap }: CaseHistoryRowProps) => {
   );
 };
 
+const useLiveElapsedSeconds = (
+  serverSeconds: number | null,
+  isRunning: boolean,
+) => {
+  const [anchor, setAnchor] = useState(() => ({
+    seconds: serverSeconds,
+    receivedAt: Date.now(),
+  }));
+  const [now, setNow] = useState(() => Date.now());
+
+  if (anchor.seconds !== serverSeconds) {
+    setAnchor({ seconds: serverSeconds, receivedAt: Date.now() });
+  }
+
+  useEffect(() => {
+    if (!isRunning) return;
+    setNow(Date.now());
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, [isRunning]);
+
+  if (anchor.seconds == null) return null;
+  if (!isRunning) return anchor.seconds;
+  return (
+    anchor.seconds + Math.max(0, Math.floor((now - anchor.receivedAt) / 1000))
+  );
+};
+
 const TicketRow = ({ ticket, onComplete, onActionStart }: TicketRowProps) => {
   const { t } = useTranslation();
   const [holdDialogOpen, setHoldDialogOpen] = useState(false);
@@ -535,23 +563,10 @@ const TicketRow = ({ ticket, onComplete, onActionStart }: TicketRowProps) => {
     ticket.proceededAt == null &&
     ticket.completedAt == null &&
     !hasActiveHold;
-  const baseDuration = ticket.employeeActiveDurationSeconds ?? null;
-  const snapshotAt = useMemo(() => Date.now(), [baseDuration]);
-  const [now, setNow] = useState(() => Date.now());
-
-  useEffect(() => {
-    if (!isRunning) return;
-    setNow(Date.now());
-    const interval = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(interval);
-  }, [isRunning]);
-
-  const duration =
-    baseDuration == null
-      ? null
-      : isRunning
-        ? baseDuration + Math.max(0, Math.floor((now - snapshotAt) / 1000))
-        : baseDuration;
+  const duration = useLiveElapsedSeconds(
+    ticket.employeeActiveDurationSeconds ?? null,
+    isRunning,
+  );
 
   const statusTone: Tone =
     ticket.status === "done"
