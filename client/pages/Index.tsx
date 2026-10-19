@@ -312,7 +312,7 @@ export default function Index() {
     <div className="relative overflow-visible">
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 -z-10 bg-blue-50" />
-        <div className="w-full px-4 sm:px-6 lg:px-8 grid items-center gap-8 sm:gap-12 py-12 sm:py-16 md:py-20 lg:py-24 md:grid-cols-2">
+        <div className="w-full px-4 sm:px-6 lg:px-8 grid items-center gap-8 sm:gap-12 py-12 sm:py-16 md:py-20 lg:py-24">
           <div className="space-y-6 sm:space-y-8">
             <Badge className="w-fit rounded-full border border-primary/30 bg-primary/10 px-3 sm:px-4 py-1 text-xs sm:text-sm font-medium text-primary">
               {t("home.badgeText")}
@@ -401,7 +401,7 @@ export default function Index() {
               {t("home.workflowSubtitle")}
             </p>
           </div>
-          <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2">
             {PHASES.map((phase) => {
               const Card = PhaseCard({ t });
               return <div key={phase.phaseKey}>{Card(phase)}</div>;

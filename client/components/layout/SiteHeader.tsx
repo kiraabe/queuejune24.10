@@ -47,7 +47,7 @@ const SiteHeader = () => {
           </div>
         </Link>
 
-        <nav className="hidden items-center gap-1 md:flex">
+        <nav className="hidden items-center gap-1 lg:flex">
           {NAV_LINKS.map((item) => (
             <NavLink
               key={item.to}
@@ -89,7 +89,7 @@ const SiteHeader = () => {
           )}
         </nav>
 
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-3 lg:flex">
           <LanguageMenu />
           {user ? (
             <>
@@ -119,7 +119,7 @@ const SiteHeader = () => {
         <Button
           variant="outline"
           size="icon"
-          className="md:hidden"
+          className="lg:hidden"
           onClick={toggleMenu}
           aria-label={isMenuOpen ? t("buttons.close") : "Open menu"}
         >
@@ -133,7 +133,7 @@ const SiteHeader = () => {
 
       <div
         className={cn(
-          "md:hidden",
+          "lg:hidden",
           "absolute left-0 right-0 top-full z-40 origin-top bg-background/95 backdrop-blur transition-all duration-200",
           isMenuOpen
             ? "pointer-events-auto visible translate-y-0 opacity-100"
