@@ -267,8 +267,10 @@ export default function SessionManagement() {
   const paginationData = useMemo(() => {
     // Build a map of username → all active sessions
     const userMap = new Map<string, SessionSummary[]>();
+    let activeSessionCount = 0;
     for (const session of sessions) {
       if (session.status !== "active") continue;
+      activeSessionCount += 1;
       const bucket = userMap.get(session.username) ?? [];
       bucket.push(session);
       userMap.set(session.username, bucket);
@@ -288,6 +290,7 @@ export default function SessionManagement() {
       currentSlice,
       totalPages,
       totalUsers: uniqueUsers.length,
+      activeSessionCount,
       startIdx,
       userMap,
     };
@@ -361,7 +364,7 @@ export default function SessionManagement() {
                 <CardTitle>Active Sessions</CardTitle>
                 <CardDescription>
                   {paginationData.totalUsers} user{paginationData.totalUsers !== 1 ? "s" : ""},
-                  {" "}{sessions.length} session{sessions.length !== 1 ? "s" : ""}
+                  {" "}{paginationData.activeSessionCount} session{paginationData.activeSessionCount !== 1 ? "s" : ""}
                 </CardDescription>
               </div>
               <ConnectionBadge isConnected={isConnected} />
