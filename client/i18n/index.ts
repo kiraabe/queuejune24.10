@@ -5,7 +5,11 @@ import type { Language } from "@/hooks/use-language";
 
 export type TranslationKey = `${string}.${string}`;
 
-const translations: Record<Language, typeof en> = {
+type DeepPartial<T> = {
+  [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K];
+};
+
+const translations: Record<Language, DeepPartial<typeof en>> = {
   en,
   am,
   om,

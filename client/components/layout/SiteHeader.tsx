@@ -106,7 +106,7 @@ const SiteHeader = () => {
                   navigate(`/login`);
                 }}
               >
-                sign out
+                {t("buttons.logout")}
               </Button>
             </>
           ) : (
@@ -121,7 +121,7 @@ const SiteHeader = () => {
           size="icon"
           className="lg:hidden"
           onClick={toggleMenu}
-          aria-label={isMenuOpen ? t("buttons.close") : "Open menu"}
+          aria-label={isMenuOpen ? t("buttons.close") : t("buttons.openMenu")}
         >
           {isMenuOpen ? (
             <X className="h-5 w-5" />
@@ -210,7 +210,7 @@ const SiteHeader = () => {
                     navigate("/login");
                   }}
                 >
-                  sign out topbr
+                  {t("buttons.logout")}
                 </Button>
               </>
             ) : (

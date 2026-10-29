@@ -554,19 +554,6 @@ export async function initDb() {
     await p
       .query(`ALTER TABLE tickets DROP CONSTRAINT IF EXISTS tickets_code_key;`)
       .catch(() => {});
-    // Create a unique index to ensure per-day uniqueness for ticket codes.
-    // Some hosted Postgres providers disallow non-IMMUTABLE functions in index expressions (e.g. date(created_at)).
-    // Try creating the index, but if it fails due to immutability restrictions, log a warning and continue.
-    try {
-      await p.query(
-        `CREATE UNIQUE INDEX IF NOT EXISTS uniq_tickets_code_day ON tickets (code, (date(created_at)));`,
-      );
-    } catch (e) {
-      console.warn(
-        "Could not create uniq_tickets_code_day index - continuing without it:",
-        e?.message ?? e,
-      );
-    }
     await p.query(
       `ALTER TABLE service_counters ADD COLUMN IF NOT EXISTS counter_date date;`,
     );
@@ -4179,26 +4166,11 @@ export async function deleteLicenseDb(licenseId: string): Promise<boolean> {
   return res.rowCount > 0;
 }
 
-// initialize on import (non-blocking with timeout)
-const initDbWithTimeout = async () => {
-  const ms =
-    Number(process.env.DB_INIT_TIMEOUT_MS) > 0
-      ? Number(process.env.DB_INIT_TIMEOUT_MS)
-      : 900000;
-  const timeoutPromise = new Promise((_, reject) =>
-    setTimeout(
-      () =>
-        reject(
-          new Error(
-            `Database initialization timeout after ${Math.round(ms / 1000)}s`,
-          ),
-        ),
-      ms,
-    ),
-  );
+// Start initialization without blocking server startup
+const initDbInBackground = async () => {
   try {
     console.log("🔄 Database initialization started...");
-    await Promise.race([initDb(), timeoutPromise]);
+    await initDb();
     console.log(
       "✅ Database initialization complete. No demo users created - users must be added through the management API.",
     );
@@ -4207,7 +4179,4 @@ const initDbWithTimeout = async () => {
   }
 };
 
-// Start initialization but don't block server startup
-initDbWithTimeout().catch((err) => {
-  console.error("❌ Uncaught DB init error:", err);
-});
+initDbInBackground();
