@@ -5,27 +5,6 @@ function sanitizeBase(value: string) {
   return value.replace(/\/$/, "");
 }
 
-function readQueryApiBase(): string | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const url = new URL(window.location.href);
-    const v = url.searchParams.get("api");
-    return v ? sanitizeBase(v) : null;
-  } catch {
-    return null;
-  }
-}
-
-function readStoredApiBase(): string | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const v = localStorage.getItem("apiBase");
-    return v ? sanitizeBase(v) : null;
-  } catch {
-    return null;
-  }
-}
-
 async function detectApiBase(): Promise<string> {
   if (typeof window === "undefined") return "";
   const tryPing = async (base: string) => {
@@ -87,19 +66,6 @@ export function getApiBase(): string {
   const runtime =
     typeof window !== "undefined" ? (window as any).__API_BASE__ : undefined;
   if (runtime) return sanitizeBase(String(runtime));
-  const fromQuery = readQueryApiBase();
-  if (fromQuery) {
-    dynamicBase = fromQuery;
-    try {
-      localStorage.setItem("apiBase", dynamicBase);
-    } catch {}
-    return dynamicBase;
-  }
-  const stored = readStoredApiBase();
-  if (stored) {
-    dynamicBase = stored;
-    return dynamicBase;
-  }
   if (dynamicBase !== null) return dynamicBase;
   return "";
 }

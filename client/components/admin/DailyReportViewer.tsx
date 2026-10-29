@@ -71,6 +71,18 @@ interface DailyReport {
   serviceStandardTimes: Record<string, number>;
 }
 
+const escapeHtml = (value: unknown) =>
+  String(value ?? "").replace(/[&<>"']/g, (char) => {
+    const entities: Record<string, string> = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    };
+    return entities[char];
+  });
+
 const formatSeconds = (seconds: number | null) => {
   if (seconds === null || seconds === 0) return "—";
   const hours = Math.floor(seconds / 3600);
@@ -316,7 +328,7 @@ export default function DailyReportViewer() {
           <h1 style="font-size: 24px; font-weight: bold; text-align: center;">DAILY QUEUE MANAGEMENT SYSTEM</h1>
           <h1 style="font-size: 24px; font-weight: bold; text-align: center;">COMPREHENSIVE REPORT</h1>
           <div style="margin: 20px 0; text-align: center;">
-            <p style="font-weight: bold; margin: 5px 0;">Report Period: ${report.reportDate}</p>
+            <p style="font-weight: bold; margin: 5px 0;">Report Period: ${escapeHtml(report.reportDate)}</p>
             <p style="font-weight: bold; margin: 5px 0;">Generated: ${format(new Date(report.generatedAt), "PPpp")}</p>
           </div>
 
@@ -381,8 +393,8 @@ export default function DailyReportViewer() {
           const bgColor = idx % 2 === 0 ? "#ffffff" : "#f9f9f9";
           htmlContent += `
             <tr style="background-color: ${bgColor};">
-              <td style="border: 1px solid #ddd; padding: 8px;">${window.windowName}</td>
-              <td style="border: 1px solid #ddd; padding: 8px;">${window.tellerName}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${escapeHtml(window.windowName)}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${escapeHtml(window.tellerName)}</td>
               <td style="border: 1px solid #ddd; padding: 8px;">${window.servedTickets}</td>
               <td style="border: 1px solid #ddd; padding: 8px;">${avgTime}</td>
               <td style="border: 1px solid #ddd; padding: 8px;">${performanceLabel}</td>
@@ -413,7 +425,7 @@ export default function DailyReportViewer() {
           const bgColor = idx % 2 === 0 ? "#ffffff" : "#f9f9f9";
           htmlContent += `
             <tr style="background-color: ${bgColor};">
-              <td style="border: 1px solid #ddd; padding: 8px;">${emp.employeeName}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${escapeHtml(emp.employeeName)}</td>
               <td style="border: 1px solid #ddd; padding: 8px;">${emp.totalCasesStarted}</td>
               <td style="border: 1px solid #ddd; padding: 8px;">${emp.casesCompleted}</td>
               <td style="border: 1px solid #ddd; padding: 8px;">${avgCaseTime}</td>
@@ -444,7 +456,7 @@ export default function DailyReportViewer() {
           const bgColor = idx % 2 === 0 ? "#ffffff" : "#f9f9f9";
           htmlContent += `
             <tr style="background-color: ${bgColor};">
-              <td style="border: 1px solid #ddd; padding: 8px;">${cat.categoryName}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${escapeHtml(cat.categoryName)}</td>
               <td style="border: 1px solid #ddd; padding: 8px;">${cat.totalTickets}</td>
               <td style="border: 1px solid #ddd; padding: 8px;">${cat.served}</td>
               <td style="border: 1px solid #ddd; padding: 8px;">${cat.skipped}</td>
@@ -491,10 +503,10 @@ export default function DailyReportViewer() {
           const bgColor = idx % 2 === 0 ? "#ffffff" : "#f9f9f9";
           htmlContent += `
             <tr style="background-color: ${bgColor};">
-              <td style="border: 1px solid #ddd; padding: 6px;">${ticket.ticketCode}</td>
-              <td style="border: 1px solid #ddd; padding: 6px;">${ticket.service}</td>
-              <td style="border: 1px solid #ddd; padding: 6px;">${ticket.ownerName || "—"}</td>
-              <td style="border: 1px solid #ddd; padding: 6px;">${windowName}</td>
+              <td style="border: 1px solid #ddd; padding: 6px;">${escapeHtml(ticket.ticketCode)}</td>
+              <td style="border: 1px solid #ddd; padding: 6px;">${escapeHtml(ticket.service)}</td>
+              <td style="border: 1px solid #ddd; padding: 6px;">${escapeHtml(ticket.ownerName || "—")}</td>
+              <td style="border: 1px solid #ddd; padding: 6px;">${escapeHtml(windowName)}</td>
               <td style="border: 1px solid #ddd; padding: 6px;">${formatDate(ticket.startedAt)}</td>
               <td style="border: 1px solid #ddd; padding: 6px;">${formatDate(ticket.completedAt)}</td>
               <td style="border: 1px solid #ddd; padding: 6px;">${duration}</td>

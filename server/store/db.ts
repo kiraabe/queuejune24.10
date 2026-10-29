@@ -53,9 +53,17 @@ export function getPool() {
       return noTrailing;
     })();
 
+    if (cleaned) {
+      const connectionUrl = new URL(cleaned);
+      if (["sslmode", "sslrootcert", "sslcert", "sslkey"].some((key) => connectionUrl.searchParams.has(key))) {
+        throw new Error("Configure database TLS with DATABASE_SSL_CA instead of connection URL TLS parameters");
+      }
+    }
+
+    const databaseCa = process.env.DATABASE_SSL_CA?.replace(/\\n/g, "\n");
     pool = new Pool({
       connectionString: cleaned,
-      ssl: { rejectUnauthorized: false },
+      ssl: { rejectUnauthorized: true, ...(databaseCa ? { ca: databaseCa } : {}) },
       // Connection pool configuration
       max: DB_CONFIG.poolMax,
       min: DB_CONFIG.poolMin,

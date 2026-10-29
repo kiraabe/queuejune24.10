@@ -2,10 +2,7 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
-import { WebSocketServer } from "ws";
-import type { Server as HTTPServer } from "node:http";
 import { getPool } from "./store/db";
-import { handleAdminSessionConnection } from "./services/session-websocket";
 import { handleDemo } from "./routes/demo";
 import { validateLicenseHandler, checkLicenseStatusHandler } from "./routes/license";
 import {
@@ -49,10 +46,8 @@ import {
 } from "./routes/queue";
 import {
   listSessionsHandler,
-  debugSessionsHandler,
   revokeSessionHandler,
   revokeAllSessionsHandler,
-  getSessionCountHandler,
   sessionPing,
   login,
   logout,
@@ -130,19 +125,18 @@ export function createServer() {
   app.set("trust proxy", true);
 
   // Middleware
-  // Configure CORS: allow same-origin and any configured ALLOWED_ORIGINS. In development allow all origins for convenience.
   const allowedEnv = (process.env.ALLOWED_ORIGINS || "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-  // Check if we should allow any origin (dev mode or explicit override)
   const allowAnyOrigin =
-    process.env.ALLOW_ANY_ORIGIN === "true" || !process.env.ALLOWED_ORIGINS;
+    process.env.NODE_ENV !== "production" &&
+    process.env.ALLOW_ANY_ORIGIN === "true";
   app.use(
     cors({
       origin: (origin, callback) => {
-        if (!origin) return callback(null, true); // same-origin or non-browser clients
-        if (allowAnyOrigin) return callback(null, true); // Allow all when no ALLOWED_ORIGINS is set
+        if (!origin) return callback(null, true);
+        if (allowAnyOrigin) return callback(null, true);
         try {
           const u = new URL(origin);
           if (
@@ -152,7 +146,7 @@ export function createServer() {
           )
             return callback(null, true);
         } catch {}
-        return callback(new Error("Not allowed by CORS"));
+        return callback(null, false);
       },
       credentials: true,
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -185,13 +179,14 @@ export function createServer() {
       // Content Security Policy
       contentSecurityPolicy: {
         directives: {
-          defaultSrc: ["*"],
-          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "*"],
-          styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "*"],
-          imgSrc: ["'self'", "data:", "blob:", "*"],
-          fontSrc: ["'self'", "https://fonts.gstatic.com", "*"],
-          connectSrc: ["*"],
-          frameAncestors: ["*"],
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+          imgSrc: ["'self'", "data:", "blob:"],
+          fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+          connectSrc: ["'self'"],
+          frameAncestors:
+            process.env.NODE_ENV === "production" ? ["'self'"] : ["*"],
         },
       },
       // Relaxed policies for development/preview environments
@@ -200,8 +195,8 @@ export function createServer() {
       crossOriginEmbedderPolicy: false,
       // Prevent browsers from MIME-type sniffing
       noSniff: true,
-      // Clickjacking protection - disabled for preview
-      frameguard: false,
+      frameguard:
+        process.env.NODE_ENV === "production" ? { action: "sameorigin" } : false,
     }),
   );
 
@@ -229,72 +224,41 @@ export function createServer() {
   // Stricter rate limiting for write operations
   app.use("/api/", strictDbRateLimitMiddleware);
 
-  // Require a CSRF-style header for state-changing requests.
-  // Enforce strict origin/referrer checks only in production (or when FORCE_STRICT_ORIGIN=true).
   app.use((req, res, next) => {
-    const method = req.method.toUpperCase();
-    if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
-      const csrfHeader =
-        req.headers["x-requested-with"] || req.headers["x-csrf-token"];
-      if (!csrfHeader) {
-        return res.status(400).json({ error: "Missing CSRF header" });
+    if (!["POST", "PUT", "PATCH", "DELETE"].includes(req.method.toUpperCase())) {
+      return next();
+    }
+
+    const origin = req.get("origin");
+    const referer = req.get("referer");
+    const source = origin || referer;
+    if (!source) {
+      if (req.headers.cookie?.includes("queue_session=")) {
+        return res.status(403).json({ error: "Origin required for authenticated writes" });
       }
+      return next();
+    }
 
-      // Only enforce strict origin checks if ALLOWED_ORIGINS is explicitly configured
-      const isProdStrict =
-        process.env.FORCE_STRICT_ORIGIN === "true" &&
-        Boolean(process.env.ALLOWED_ORIGINS);
-      if (isProdStrict) {
-        const origin = (req.headers["origin"] as string) || "";
-        const referer = (req.headers["referer"] as string) || "";
-        const host =
-          (req.headers["x-forwarded-host"] as string)?.split(",")[0]?.trim() ||
-          (req.headers["host"] as string) ||
-          "";
+    let sourceOrigin: string;
+    try {
+      sourceOrigin = new URL(source).origin;
+    } catch {
+      return res.status(403).json({ error: "Invalid request origin" });
+    }
 
-        // Build allowlist of hosts
-        const allowedEnv = (process.env.ALLOWED_ORIGINS || "")
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean);
-        // Accept both host:port and hostname-only to avoid false negatives across dev ports/proxies
-        const getHostVariants = (h: string) => {
-          const variants = new Set<string>();
-          variants.add(h);
-          const idx = h.indexOf(":");
-          if (idx !== -1) variants.add(h.slice(0, idx));
-          return variants;
-        };
-
-        const allowedHosts = new Set<string>();
-        for (const v of getHostVariants(host)) allowedHosts.add(v);
-        for (const v of allowedEnv) {
-          try {
-            const parsed = new URL(v);
-            for (const hv of getHostVariants(parsed.host)) allowedHosts.add(hv);
-          } catch {
-            // If plain host provided without scheme
-            for (const hv of getHostVariants(v)) allowedHosts.add(hv);
-          }
+    const requestOrigin = `${req.protocol}://${req.get("host")}`;
+    const isAllowed =
+      sourceOrigin === requestOrigin ||
+      allowedEnv.some((allowed) => {
+        try {
+          return sourceOrigin === new URL(allowed).origin;
+        } catch {
+          return sourceOrigin === `https://${allowed}` || sourceOrigin === `http://${allowed}`;
         }
+      });
 
-        const isAllowed = (url: string) => {
-          try {
-            const u = new URL(url);
-            // Check either host (host:port) or hostname (no port)
-            return allowedHosts.has(u.host) || allowedHosts.has(u.hostname);
-          } catch {
-            return false;
-          }
-        };
-
-        if (
-          (origin && !isAllowed(origin)) ||
-          (referer && !isAllowed(referer))
-        ) {
-          return res.status(403).json({ error: "Invalid origin or referrer" });
-        }
-      }
+    if (!isAllowed) {
+      return res.status(403).json({ error: "Invalid request origin" });
     }
     next();
   });
@@ -341,7 +305,6 @@ export function createServer() {
   app.post("/api/auth/tab-closed", tabClosed);
   app.post("/api/auth/switch-role", switchRole);
   app.post("/api/auth/change-password", requireAuthentication(), changePassword);
-  app.get("/api/auth/session-count/:username", getSessionCountHandler); // Public endpoint for login page
 
   // New Session/Heartbeat API
   app.post("/api/session/ping", sessionPing);
@@ -425,10 +388,21 @@ export function createServer() {
     getCaseHolds,
   );
 
-  // Case workflow endpoints (public - for supervisors/tellers viewing completed case workflows)
-  app.get("/api/employee/case-workflow", caseWorkflow);
-  app.get("/api/employee/case-workflows", listCaseWorkflows);
-  app.get("/api/employee/progress-flow", getStoredProgressFlow);
+  app.get(
+    "/api/employee/case-workflow",
+    requireRole(["employee", "teller", "admin", "archiever"]),
+    caseWorkflow,
+  );
+  app.get(
+    "/api/employee/case-workflows",
+    requireRole(["employee", "teller", "admin", "archiever"]),
+    listCaseWorkflows,
+  );
+  app.get(
+    "/api/employee/progress-flow",
+    requireRole(["employee", "teller", "admin", "archiever"]),
+    getStoredProgressFlow,
+  );
 
   // Field Visit Workflow endpoints
   app.post(
@@ -529,8 +503,7 @@ export function createServer() {
   app.get("/api/tickets/:code", getTicketStatus);
   app.get("/api/admin/sessions", requireRole(["admin"]), listSessionsHandler);
   app.delete("/api/admin/sessions/:sessionId", requireRole(["admin"]), revokeSessionHandler);
-  app.post("/api/auth/revoke-all-sessions", revokeAllSessionsHandler); // Emergency cleanup - revokes all other sessions
-  app.get("/api/admin/sessions-debug", debugSessionsHandler); // Debug endpoint without auth
+  app.post("/api/auth/revoke-all-sessions", requireAuthentication(), revokeAllSessionsHandler);
   app.post("/api/admin/clear-demo", requireRole(["admin"]), clearDemo);
   app.post("/api/admin/seed-test-data", requireRole(["admin"]), seedTestData);
   app.get(
@@ -544,7 +517,7 @@ export function createServer() {
     updateQueueSettings,
   );
   app.get("/api/admin/daily-report", requireRole(["admin"]), getDailyReport);
-  app.get("/api/admin/overall-analytics", getOverallAnalytics); // Temporarily public for debugging
+  app.get("/api/admin/overall-analytics", requireRole(["admin"]), getOverallAnalytics);
   app.get(
     "/api/admin/employee-stats",
     requireRole(["admin"]),
@@ -578,7 +551,11 @@ export function createServer() {
   app.get("/api/service-categories/:categoryId/services", getCategoryServices);
 
   // Window and user management endpoints
-  app.get("/api/admin/users", listUsers); // Public read for transfer feature
+  app.get(
+    "/api/admin/users",
+    requireRole(["admin", "employee", "teller", "reception", "archiever"]),
+    listUsers,
+  );
   app.post("/api/admin/users", requireRole(["admin"]), createUser);
   app.post("/api/admin/users/bulk-import", requireRole(["admin"]), bulkImportUsers);
   app.put("/api/admin/users/:id", requireRole(["admin"]), updateUser);
@@ -727,24 +704,4 @@ export function createServer() {
   }, 5 * 60 * 1000);
 
   return app;
-}
-
-/**
- * Setup WebSocket server for real-time functionality
- */
-export function setupWebSocket(httpServer: HTTPServer) {
-  const wss = new WebSocketServer({
-    server: httpServer,
-    path: "/ws/admin/sessions"
-  });
-
-  wss.on("connection", (ws) => {
-    handleAdminSessionConnection(ws);
-  });
-
-  wss.on("error", (error) => {
-    console.error("[WebSocket Server] Error:", error);
-  });
-
-  console.log("[WebSocket] Server initialized at /ws/admin/sessions");
 }

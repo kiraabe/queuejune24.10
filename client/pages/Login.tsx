@@ -1,4 +1,4 @@
-import { useState, useEffect, useId } from "react";
+import { useState, useId } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,21 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useTranslation } from "@/hooks/use-translation";
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const SESSION_CHECK_DEBOUNCE_MS = 800;
-const SESSION_CHECK_TIMEOUT_MS  = 10_000;
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface SessionInfo {
-  username:           string;
-  activeSessionCount: number;
-  maxSessions:        number;
-  canLogin:           boolean;
-  isBlocked:          boolean;
-}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -76,62 +61,11 @@ export default function Login() {
   const [showPassword,   setShowPassword]   = useState(false);
   const [error,          setError]          = useState<string | null>(null);
   const [pending,        setPending]        = useState(false);
-  const [sessionInfo,    setSessionInfo]    = useState<SessionInfo | null>(null);
-  const [sessionLoading, setSessionLoading] = useState(false);
-
-  // Stable IDs for aria linkage
-  const errorId       = useId();
-  const sessionInfoId = useId();
+  const errorId = useId();
 
   // Capture viewport width once at mount.
   // Reading it at submit time would give the post-resize value.
   const [viewportWidth] = useState(() => window.innerWidth);
-
-  // ── Session-count check ────────────────────────────────────────────────────
-  //
-  // Debounced to avoid hammering the API on every keystroke.
-  // Stale results are ignored when the username changes or the page unmounts.
-
-  useEffect(() => {
-    const trimmed = username.trim();
-    if (!trimmed) {
-      setSessionInfo(null);
-      setSessionLoading(false);
-      return;
-    }
-
-    const controller = new AbortController();
-    let active = true;
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
-
-    const timer = setTimeout(async () => {
-      if (!active) return;
-      setSessionLoading(true);
-      timeoutId = setTimeout(() => controller.abort(), SESSION_CHECK_TIMEOUT_MS);
-      try {
-        const response = await fetch(
-          `/api/auth/session-count/${encodeURIComponent(trimmed)}`,
-          {
-            signal: controller.signal,
-            credentials: "include",
-            headers: { "X-Requested-With": "fetch" },
-          },
-        );
-        const session = response.ok ? await response.json() : null;
-        if (active) setSessionInfo(session);
-      } catch {
-        if (active) setSessionInfo(null);
-      } finally {
-        if (timeoutId !== undefined) clearTimeout(timeoutId);
-        if (active) setSessionLoading(false);
-      }
-    }, SESSION_CHECK_DEBOUNCE_MS);
-
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
-  }, [username]);
 
   // ── Submit ─────────────────────────────────────────────────────────────────
 
@@ -173,19 +107,6 @@ export default function Login() {
     }
   }
 
-  // ── Derived UI state ───────────────────────────────────────────────────────
-
-  const isBlocked         = Boolean(sessionInfo?.isBlocked && !sessionInfo.canLogin);
-  const showSessionNotice = Boolean(sessionInfo?.isBlocked &&  sessionInfo.canLogin);
-  const remainingSlots    = sessionInfo
-    ? sessionInfo.maxSessions - sessionInfo.activeSessionCount
-    : 0;
-
-  const ariaDescribedBy = [
-    error     ? errorId       : null,
-    isBlocked ? sessionInfoId : null,
-  ].filter(Boolean).join(" ") || undefined;
-
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -203,7 +124,7 @@ export default function Login() {
             <form
               className="grid gap-4"
               onSubmit={onSubmit}
-              aria-describedby={ariaDescribedBy}
+              aria-describedby={error ? errorId : undefined}
               noValidate
             >
               {/* Username */}
@@ -248,42 +169,6 @@ export default function Login() {
                 </div>
               </div>
 
-              {/* Session blocked warning */}
-              {isBlocked && (
-                <div
-                  id={sessionInfoId}
-                  role="alert"
-                  className="rounded-md p-3 text-sm bg-red-50 border border-red-200"
-                >
-                  <p className="font-medium text-red-900">
-                    {sessionInfo!.activeSessionCount} of {sessionInfo!.maxSessions} devices logged in
-                  </p>
-                  <p className="text-xs mt-1 text-red-700">
-                    Maximum session limit reached. Please log out from another device to continue.
-                  </p>
-                </div>
-              )}
-
-              {/* Session notice — still has capacity */}
-              {showSessionNotice && (
-                <div className="rounded-md p-3 text-sm bg-blue-50 border border-blue-200">
-                  <p className="font-medium text-blue-900">
-                    {sessionInfo!.activeSessionCount} of {sessionInfo!.maxSessions} devices logged in
-                  </p>
-                  <p className="text-xs mt-1 text-blue-700">
-                    You can log in on {remainingSlots} more device{remainingSlots === 1 ? "" : "s"}.
-                  </p>
-                </div>
-              )}
-
-              {/* Session count loading */}
-              {sessionLoading && (
-                <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                  <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground" />
-                  Checking active sessions…
-                </p>
-              )}
-
               {/* Error */}
               {error && (
                 <p id={errorId} role="alert" className="text-sm text-destructive">
@@ -293,7 +178,7 @@ export default function Login() {
 
               <Button
                 type="submit"
-                disabled={pending || isBlocked}
+                disabled={pending}
               >
                 {pending ? `${t("login.signIn")}…` : t("login.signIn")}
               </Button>

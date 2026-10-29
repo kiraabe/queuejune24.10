@@ -17,9 +17,8 @@ function getEncryptionKey(): Buffer {
   const encryptionSecret = process.env.LICENSE_ENCRYPTION_KEY;
   
   if (!encryptionSecret) {
-    // Fallback: derive key from a master secret
-    // In production, always set LICENSE_ENCRYPTION_KEY
-    const masterSecret = process.env.APP_SECRET || "default-insecure-secret-change-in-production";
+    const masterSecret = process.env.APP_SECRET || process.env.AUTH_SECRET;
+    if (!masterSecret) throw new Error("LICENSE_ENCRYPTION_KEY or AUTH_SECRET must be configured");
     return crypto.scryptSync(masterSecret, "license-salt", 32);
   }
 
@@ -74,29 +73,28 @@ export function decryptField(encrypted: string | null): string | null {
     return encrypted;
   }
 
-  try {
-    const key = getEncryptionKey();
+  const iv = Buffer.from(encrypted.slice(0, IV_LENGTH * 2), "hex");
+  const authTag = Buffer.from(
+    encrypted.slice(IV_LENGTH * 2, IV_LENGTH * 2 + TAG_LENGTH * 2),
+    "hex",
+  );
+  const encryptedData = encrypted.slice(IV_LENGTH * 2 + TAG_LENGTH * 2);
+  const keys = [
+    getEncryptionKey(),
+    crypto.scryptSync("default-insecure-secret-change-in-production", "license-salt", 32),
+  ];
 
-    // Extract IV (24 hex chars = 12 bytes), authTag (32 hex chars = 16 bytes), and encrypted data
-    const iv = Buffer.from(encrypted.slice(0, IV_LENGTH * 2), "hex");
-    const authTag = Buffer.from(
-      encrypted.slice(IV_LENGTH * 2, IV_LENGTH * 2 + TAG_LENGTH * 2),
-      "hex"
-    );
-    const encryptedData = encrypted.slice(IV_LENGTH * 2 + TAG_LENGTH * 2);
-
-    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
-    decipher.setAuthTag(authTag);
-
-    let decrypted = decipher.update(encryptedData, "hex", "utf-8");
-    decrypted += decipher.final("utf-8");
-
-    return decrypted;
-  } catch (error) {
-    // Return original if decryption fails (likely not encrypted or wrong key)
-    console.warn("Decryption failed, returning original value:", error instanceof Error ? error.message : "unknown error");
-    return encrypted;
+  for (const key of keys) {
+    try {
+      const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+      decipher.setAuthTag(authTag);
+      let decrypted = decipher.update(encryptedData, "hex", "utf-8");
+      decrypted += decipher.final("utf-8");
+      return decrypted;
+    } catch {}
   }
+
+  return encrypted;
 }
 
 /**

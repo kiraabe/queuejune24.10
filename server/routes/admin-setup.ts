@@ -1,5 +1,6 @@
 import type { RequestHandler } from "express";
-import { getPool, isDbEnabled, createUser } from "../store/db";
+import { randomUUID, timingSafeEqual } from "node:crypto";
+import { getPool, isDbEnabled } from "../store/db";
 import { hashPassword } from "../utils/auth";
 
 /**
@@ -7,6 +8,20 @@ import { hashPassword } from "../utils/auth";
  * This should only be available on first setup
  */
 export const setupAdmin: RequestHandler = async (req, res) => {
+  const setupSecret = process.env.ADMIN_SETUP_SECRET;
+  const suppliedSecret = req.get("x-admin-setup-secret");
+  if (!setupSecret) {
+    return res.status(503).json({ error: "Admin setup is not configured" });
+  }
+  const suppliedSecretBytes = Buffer.from(suppliedSecret || "");
+  const setupSecretBytes = Buffer.from(setupSecret || "");
+  if (
+    !suppliedSecret ||
+    suppliedSecretBytes.length !== setupSecretBytes.length ||
+    !timingSafeEqual(suppliedSecretBytes, setupSecretBytes)
+  ) {
+    return res.status(403).json({ error: "Invalid setup credentials" });
+  }
   if (!isDbEnabled) {
     return res.status(400).json({
       error: "Database not enabled",
@@ -15,41 +30,48 @@ export const setupAdmin: RequestHandler = async (req, res) => {
   }
 
   try {
-    const p = getPool();
-
-    // Check if any users exist
-    const { rows } = await p.query(`SELECT COUNT(*)::int AS c FROM users`);
-    const userCount = Number(rows[0]?.c || 0);
-
-    if (userCount > 0) {
-      // Users exist, cannot reset
+    const { username, password } = req.body ?? {};
+    if (
+      typeof username !== "string" || username.trim().length < 3 || username.trim().length > 100 ||
+      typeof password !== "string" || password.length < 12
+    ) {
       return res.status(400).json({
-        error: "Users already exist",
-        message:
-          "Cannot create initial admin user. Use user management endpoints to add users.",
+        error: "A username and password of at least 12 characters are required",
       });
     }
 
-    // No users exist, create only the admin user (no demo users)
-    const { hashPassword: hp } = await import("../utils/auth");
+    const client = await getPool().connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT pg_advisory_xact_lock(hashtext('queue-admin-bootstrap'))");
+      const { rows } = await client.query(`SELECT COUNT(*)::int AS c FROM users`);
+      if (Number(rows[0]?.c || 0) > 0) {
+        await client.query("ROLLBACK");
+        return res.status(409).json({ error: "Users already exist" });
+      }
 
-    await createUser({
-      username: "admin",
-      password_hash: hp("password"),
-      role: "admin",
-      window_id: null,
-      disabled: false,
-    });
+      const userId = randomUUID();
+      await client.query(
+        `INSERT INTO users (id, username, password_hash, window_id, disabled, job_title_id)
+         VALUES ($1, $2, $3, NULL, false, NULL)`,
+        [userId, username.trim(), hashPassword(password)],
+      );
+      await client.query(
+        `INSERT INTO user_roles (user_id, role, is_primary) VALUES ($1, 'admin', true)`,
+        [userId],
+      );
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK").catch(() => {});
+      throw error;
+    } finally {
+      client.release();
+    }
 
     res.json({
       ok: true,
       message: "Admin user created successfully",
-      user: {
-        username: "admin",
-        password: "password",
-        role: "admin",
-      },
-      note: "Please change the default password immediately. Use user management endpoints to create additional users.",
+      user: { username: username.trim(), role: "admin" },
     });
   } catch (error) {
     console.error("Setup error:", error);

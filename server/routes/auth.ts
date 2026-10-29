@@ -21,7 +21,6 @@ import {
   SESSION_COOKIE,
   SESSION_IDLE_TIMEOUT_SECONDS,
   SESSION_MAX_AGE_SECONDS,
-  countActiveSessionsForUser,
   createUserSession,
   createUserSessionAtomic,
   decrementTabCount,
@@ -1297,30 +1296,6 @@ export const listSessionsHandler: RequestHandler = async (req, res) => {
   }
 };
 
-// Debug endpoint for testing sessions (no auth required)
-export const debugSessionsHandler: RequestHandler = async (_req, res) => {
-  try {
-    console.log("[debugSessionsHandler] Debug request received");
-    const sessions = await listSessions();
-    console.log(
-      "[debugSessionsHandler] Sessions fetched, count:",
-      sessions.length,
-    );
-
-    res.json({
-      success: true,
-      count: sessions.length,
-      sessions: sessions.slice(0, 5), // Return first 5 for debugging
-    });
-  } catch (error) {
-    console.error("[debugSessionsHandler] Error:", error);
-    res.status(500).json({
-      success: false,
-      error: error instanceof Error ? error.message : String(error),
-    });
-  }
-};
-
 // Revoke a specific session by ID
 export const revokeSessionHandler: RequestHandler = async (req, res) => {
   try {
@@ -1407,47 +1382,6 @@ export const revokeAllSessionsHandler: RequestHandler = async (req, res) => {
     console.error("[revokeAllSessionsHandler] Error:", error);
     res.status(500).json({
       error: "Failed to revoke sessions",
-      details: error instanceof Error ? error.message : String(error),
-    });
-  }
-};
-
-// Get active session count for a username (public endpoint for login page)
-export const getSessionCountHandler: RequestHandler = async (req, res) => {
-  try {
-    const { username } = req.params;
-
-    if (!username || typeof username !== "string") {
-      return res.status(400).json({
-        error: "Username is required",
-        message: "Please provide a valid username",
-      });
-    }
-
-    // Get user by username
-    const user = await getUserByUsername(username);
-    if (!user) {
-      // Don't reveal if user exists - return 0 for security
-      return res.json({ username, activeSessionCount: 0, isBlocked: false });
-    }
-
-    // Check if user is locked/blocked
-    const blocked = isLocked(req, username);
-
-    // Get active session count
-    const activeSessionCount = await countActiveSessionsForUser(user.id);
-
-    res.json({
-      username: user.username,
-      activeSessionCount,
-      maxSessions: 3,
-      canLogin: activeSessionCount < 3,
-      isBlocked: blocked,
-    });
-  } catch (error) {
-    console.error("[getSessionCountHandler] Error:", error);
-    res.status(500).json({
-      error: "Failed to get session count",
       details: error instanceof Error ? error.message : String(error),
     });
   }

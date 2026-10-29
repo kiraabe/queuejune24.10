@@ -2,7 +2,8 @@ import type { RequestHandler } from "express";
 import { getPool, isDbEnabled, listJobTitles } from "../store/db";
 import { hashPassword } from "../utils/auth";
 import { logAudit } from "../store/db";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
+import { revokeSessionsForUser } from "../store/sessions";
 
 // Job Title Management
 
@@ -47,6 +48,7 @@ export const listUsers: RequestHandler = async (req, res) => {
 
     const { rows } = await p.query(query, params);
 
+    const isAdmin = (req as any).auth?.role === "admin";
     const users = rows.map((r) => {
       const rolesArray = r.roles ? r.roles.split(",") : [];
       return {
@@ -57,10 +59,12 @@ export const listUsers: RequestHandler = async (req, res) => {
         windowId: r.window_id,
         disabled: r.disabled,
         fullName: r.full_name,
-        department: r.department,
-        email: r.email,
-        phone: r.phone,
         jobTitleId: r.job_title_id,
+        ...(isAdmin && {
+          department: r.department,
+          email: r.email,
+          phone: r.phone,
+        }),
       };
     });
 
@@ -392,6 +396,7 @@ export const updateUser: RequestHandler = async (req, res) => {
 
     // Handle role changes separately in user_roles table
     let userRole: string | null = null;
+    let roleChanged = false;
     if (
       role !== undefined &&
       !["reception", "teller", "admin", "employee", "archiever"].includes(role)
@@ -409,6 +414,7 @@ export const updateUser: RequestHandler = async (req, res) => {
       const currentRole = currentRoleRes.rows[0]?.role;
 
       if (currentRole !== role) {
+        roleChanged = true;
         // Delete old primary role and set new one
         await p.query(
           `DELETE FROM user_roles WHERE user_id = $1 AND role = $2`,
@@ -429,6 +435,10 @@ export const updateUser: RequestHandler = async (req, res) => {
         [id],
       );
       userRole = currentRoleRes.rows[0]?.role || null;
+    }
+
+    if (roleChanged || disabled === true || password !== undefined) {
+      await revokeSessionsForUser(id, "invalidated");
     }
 
     const auth = (req as any).auth;
@@ -955,8 +965,7 @@ export const resetUserPassword: RequestHandler = async (req, res) => {
     const user = userRes.rows[0];
     const userRole = user.role || "user";
 
-    // Generate new password
-    const newPassword = `${userRole}_${user.username}_${Date.now()}`;
+    const newPassword = randomBytes(24).toString("base64url");
     const passwordHash = hashPassword(newPassword);
 
     // Update user password
@@ -964,6 +973,7 @@ export const resetUserPassword: RequestHandler = async (req, res) => {
       passwordHash,
       userId,
     ]);
+    await revokeSessionsForUser(userId, "invalidated");
 
     const auth = (req as any).auth;
     await logAudit({
