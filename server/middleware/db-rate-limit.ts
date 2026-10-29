@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { checkQueryRateLimit, getActiveConnectionsCount } from "../services/query-rate-limiter";
+import { findSessionByToken, SESSION_COOKIE, SESSION_IDLE_TIMEOUT_SECONDS } from "../store/sessions";
+import { parseCookies } from "../utils/auth";
 
 /**
  * Express middleware for database rate limiting
@@ -96,20 +98,38 @@ export function strictDbRateLimitMiddleware(
  * Middleware to extract and validate user ID from various sources
  * This should run AFTER authentication middleware
  */
-export function extractUserIdMiddleware(
+export async function extractUserIdMiddleware(
   req: Request,
-  res: Response,
-  next: NextFunction
+  _res: Response,
+  next: NextFunction,
 ) {
-  // Get user ID from authenticated session/JWT/auth context
-  // Adjust this based on your auth mechanism
-  if ((req as any).session?.userId) {
-    (req as any).userId = (req as any).session.userId;
-  } else if ((req as any).user?.id) {
-    (req as any).userId = (req as any).user.id;
-  } else if ((req as any).auth?.id) {
-    (req as any).userId = (req as any).auth.id;
-  }
+  try {
+    const userId =
+      (req as any).session?.userId ||
+      (req as any).user?.id ||
+      (req as any).auth?.id;
 
-  next();
+    if (userId) {
+      (req as any).userId = userId;
+      return next();
+    }
+
+    const token = parseCookies(req.headers.cookie || "")[SESSION_COOKIE];
+    if (!token) return next();
+
+    const session = await findSessionByToken(token);
+    const now = Date.now();
+    if (
+      session &&
+      !session.revokedAt &&
+      now <= session.expiresAt.getTime() &&
+      now - session.lastActivityAt.getTime() <= SESSION_IDLE_TIMEOUT_SECONDS * 1000
+    ) {
+      (req as any).userId = session.userId;
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
 }

@@ -146,7 +146,7 @@ export const createUser: RequestHandler = async (req, res) => {
     let finalPassword: string;
     if (role === "teller") {
       // Tellers use window password, not their own password
-      finalPassword = `teller_${usernameTrimmed}_${Date.now()}`;
+      finalPassword = randomBytes(24).toString("base64url");
     } else {
       if (password.length < 6) {
         return res
@@ -903,7 +903,7 @@ export const resetWindowPassword: RequestHandler = async (req, res) => {
     }
 
     // Generate new password
-    const newPassword = `window_${id}_${Date.now()}`;
+    const newPassword = randomBytes(24).toString("base64url");
     const passwordHash = hashPassword(newPassword);
     const userId = userRes.rows[0].id;
 
@@ -912,6 +912,7 @@ export const resetWindowPassword: RequestHandler = async (req, res) => {
       passwordHash,
       userId,
     ]);
+    await revokeSessionsForUser(userId, "invalidated");
 
     const auth = (req as any).auth;
     await logAudit({
@@ -920,7 +921,6 @@ export const resetWindowPassword: RequestHandler = async (req, res) => {
       username: auth?.username ?? null,
       role: auth?.role ?? null,
       windowId: id,
-      details: { newPassword: newPassword },
     });
 
     res.json({

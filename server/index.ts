@@ -41,6 +41,7 @@ import {
   // seedDemo, // removed
   skip,
   sseHandler,
+  adminSseHandler,
   transfer,
   getTicketStatus,
 } from "./routes/queue";
@@ -311,7 +312,8 @@ export function createServer() {
   app.post("/api/session/logout", logout);
 
   // Queue/Teller API
-  app.get("/api/events", sseHandler); // SSE
+  app.get("/api/events", sseHandler);
+  app.get("/api/admin/events", requireRole(["admin"]), adminSseHandler);
   app.post("/api/tickets", requireRole(["reception"]), createTicket);
   app.get("/api/windows", listWindows);
   app.post(
@@ -536,12 +538,12 @@ export function createServer() {
     listLicensesHandler,
   );
   app.put(
-    "/api/admin/licenses/:licenseKey/status",
+    "/api/admin/licenses/:licenseId/status",
     requireRole(["admin"]),
     updateLicenseStatusHandler,
   );
   app.delete(
-    "/api/admin/licenses/:licenseKey",
+    "/api/admin/licenses/:licenseId",
     requireRole(["admin"]),
     deleteLicenseHandler,
   );

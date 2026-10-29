@@ -79,10 +79,7 @@ export function decryptField(encrypted: string | null): string | null {
     "hex",
   );
   const encryptedData = encrypted.slice(IV_LENGTH * 2 + TAG_LENGTH * 2);
-  const keys = [
-    getEncryptionKey(),
-    crypto.scryptSync("default-insecure-secret-change-in-production", "license-salt", 32),
-  ];
+  const keys = [getEncryptionKey()];
 
   for (const key of keys) {
     try {

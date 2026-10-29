@@ -24,7 +24,10 @@ async function insertAdmin() {
 
     // Insert admin user
     const username = "admin";
-    const password = "password";
+    const password = process.env.ADMIN_BOOTSTRAP_PASSWORD;
+    if (!password || password.length < 12) {
+      throw new Error("Set ADMIN_BOOTSTRAP_PASSWORD to a unique password of at least 12 characters");
+    }
     const passwordHash = hashPassword(password);
 
     console.log("Inserting admin user...");
@@ -54,7 +57,6 @@ async function insertAdmin() {
       console.log(`  Username: ${user.username}`);
       console.log(`  Role: admin`);
       console.log(`  ID: ${user.id}`);
-      console.log(`  Password: ${password}`);
     }
   } catch (error) {
     console.error(

@@ -35,37 +35,19 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Plus, Trash2, Edit, Lock, AlertCircle, Copy, Check, Eye, EyeOff } from "lucide-react";
+import { Plus, Trash2, Lock, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import type {
   ListLicensesResponse,
   CreateLicenseResponse,
   LicenseRecord,
-  UpdateLicenseStatusResponse,
 } from "@shared/api";
-
-/**
- * Mask sensitive fields for display (shows first 8 chars + last 4 chars)
- */
-function maskField(value: string | null): string | null {
-  if (!value) {
-    return null;
-  }
-  if (value.length <= 12) {
-    return "****";
-  }
-  const start = value.substring(0, 8);
-  const end = value.substring(value.length - 4);
-  return `${start}****${end}`;
-}
 
 export default function LicenseManagement() {
   const [licenses, setLicenses] = useState<LicenseRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const [revealedLicenses, setRevealedLicenses] = useState<Set<string>>(new Set());
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -74,13 +56,9 @@ export default function LicenseManagement() {
   // Generate a random license key
   const generateLicenseKey = () => {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    const length = 16;
-    let result = "";
-    for (let i = 0; i < length; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    // Format as XXXX-XXXX-XXXX-XXXX
-    return `${result.substring(0, 4)}-${result.substring(4, 8)}-${result.substring(8, 12)}-${result.substring(12, 16)}`;
+    const bytes = crypto.getRandomValues(new Uint8Array(24));
+    const result = Array.from(bytes, (byte) => chars[byte % chars.length]).join("");
+    return result.match(/.{1,4}/gu)?.join("-") ?? result;
   };
 
   // Form state for creating license
@@ -158,11 +136,9 @@ export default function LicenseManagement() {
       const data: CreateLicenseResponse = await response.json();
       toast.success("License created successfully");
 
-      // Add new license to list and download manual
       if (data.license) {
-        setLicenses([data.license, ...licenses]);
-        // Auto-download the license manual
         downloadLicenseManual(data.license.licenseKey, data.license.licensee);
+        await loadLicenses();
       }
 
       // Reset form
@@ -182,12 +158,12 @@ export default function LicenseManagement() {
   };
 
   const handleUpdateStatus = async (
-    licenseKey: string,
+    licenseId: string,
     newStatus: "active" | "inactive" | "expired" | "revoked",
   ) => {
     try {
       const response = await fetch(
-        `/api/admin/licenses/${encodeURIComponent(licenseKey)}/status`,
+        `/api/admin/licenses/${encodeURIComponent(licenseId)}/status`,
         {
           method: "PUT",
           headers: {
@@ -202,13 +178,12 @@ export default function LicenseManagement() {
         throw new Error("Failed to update license status");
       }
 
-      const data: UpdateLicenseStatusResponse = await response.json();
       toast.success(`License status updated to ${newStatus}`);
 
       // Update license in list
       setLicenses(
-        licenses.map((l) =>
-          l.licenseKey === licenseKey ? data.license! : l,
+        licenses.map((license) =>
+          license.id === licenseId ? { ...license, status: newStatus } : license,
         ),
       );
     } catch (error) {
@@ -217,14 +192,14 @@ export default function LicenseManagement() {
     }
   };
 
-  const handleDeleteLicense = async (licenseKey: string) => {
-    if (!confirm(`Are you sure you want to delete the license "${licenseKey}"?`)) {
+  const handleDeleteLicense = async (licenseId: string, licensee: string) => {
+    if (!confirm(`Are you sure you want to delete the license for "${licensee}"?`)) {
       return;
     }
 
     try {
       const response = await fetch(
-        `/api/admin/licenses/${encodeURIComponent(licenseKey)}`,
+        `/api/admin/licenses/${encodeURIComponent(licenseId)}`,
         {
           method: "DELETE",
           headers: {
@@ -238,17 +213,11 @@ export default function LicenseManagement() {
       }
 
       toast.success("License deleted successfully");
-      setLicenses(licenses.filter((l) => l.licenseKey !== licenseKey));
+      setLicenses(licenses.filter((license) => license.id !== licenseId));
     } catch (error) {
       console.error("Failed to delete license:", error);
       toast.error("Failed to delete license");
     }
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedKey(text);
-    setTimeout(() => setCopiedKey(null), 2000);
   };
 
   const downloadLicenseManual = (licenseKey: string, licensee: string) => {
@@ -320,20 +289,6 @@ For technical support or issues with license activation:
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
-
-  const toggleReveal = (licenseId: string) => {
-    setRevealedLicenses((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(licenseId)) {
-        newSet.delete(licenseId);
-      } else {
-        newSet.add(licenseId);
-      }
-      return newSet;
-    });
-  };
-
-  const isRevealed = (licenseId: string) => revealedLicenses.has(licenseId);
 
   // Pagination calculations
   const totalPages = Math.ceil(licenses.length / itemsPerPage);
@@ -530,50 +485,17 @@ For technical support or issues with license activation:
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedLicenses.map((license) => {
-                    const isLicenseRevealed = isRevealed(license.id);
-                    const maskedKey = maskField(license.licenseKey);
-                    const maskedLicensee = maskField(license.licensee);
-
-                    return (
+                  {paginatedLicenses.map((license) => (
                     <TableRow key={license.id}>
                       <TableCell className="font-mono text-sm">
                         <div className="flex items-center gap-2">
                           <code className="px-2 py-1 rounded bg-muted">
-                            {isLicenseRevealed
-                              ? license.licenseKey.substring(0, 16) +
-                                (license.licenseKey.length > 16 ? "..." : "")
-                              : maskedKey
-                            }
+                            {license.licenseKey}
                           </code>
-                          <button
-                            onClick={() => toggleReveal(license.id)}
-                            className="hover:bg-muted p-1 rounded transition-colors"
-                            title={isLicenseRevealed ? "Hide details" : "Show details"}
-                          >
-                            {isLicenseRevealed ? (
-                              <EyeOff className="h-4 w-4 text-muted-foreground" />
-                            ) : (
-                              <Eye className="h-4 w-4 text-muted-foreground" />
-                            )}
-                          </button>
-                          <button
-                            onClick={() =>
-                              copyToClipboard(license.licenseKey)
-                            }
-                            className="hover:bg-muted p-1 rounded transition-colors"
-                            title="Copy full license key"
-                          >
-                            {copiedKey === license.licenseKey ? (
-                              <Check className="h-4 w-4 text-green-600" />
-                            ) : (
-                              <Copy className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                            )}
-                          </button>
                         </div>
                       </TableCell>
                       <TableCell>
-                        {isLicenseRevealed ? license.licensee : maskedLicensee}
+                        {license.licensee}
                       </TableCell>
                       <TableCell>
                         <Badge className={getStatusColor(license.status)}>
@@ -603,7 +525,7 @@ For technical support or issues with license activation:
                           <button
                             onClick={() =>
                               handleUpdateStatus(
-                                license.licenseKey,
+                                license.id,
                                 "revoked",
                               )
                             }
@@ -616,7 +538,7 @@ For technical support or issues with license activation:
                           <button
                             onClick={() =>
                               handleUpdateStatus(
-                                license.licenseKey,
+                                license.id,
                                 "active",
                               )
                             }
@@ -628,7 +550,7 @@ For technical support or issues with license activation:
                         )}
                         <button
                           onClick={() =>
-                            handleDeleteLicense(license.licenseKey)
+                            handleDeleteLicense(license.id, license.licensee)
                           }
                           className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-destructive/10 text-destructive rounded hover:bg-destructive/20 transition-colors"
                         >
@@ -637,8 +559,7 @@ For technical support or issues with license activation:
                         </button>
                       </TableCell>
                     </TableRow>
-                    );
-                  })}
+                  ))}
                 </TableBody>
               </Table>
             </div>

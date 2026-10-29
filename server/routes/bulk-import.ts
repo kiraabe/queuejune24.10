@@ -1,7 +1,7 @@
 import { RequestHandler } from "express";
 import { hashPassword } from "../utils/auth";
 import { getPool } from "../store/db";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 
 interface BulkUserImport {
   full_name: string;
@@ -21,8 +21,6 @@ export const bulkImportUsers: RequestHandler = async (req, res) => {
         .json({ error: "Request body must be a non-empty array of users" });
     }
 
-    const temporaryPassword = "TempPassword123";
-    const passwordHash = hashPassword(temporaryPassword);
     const pool = getPool();
 
     const importedUsers = [];
@@ -56,6 +54,8 @@ export const bulkImportUsers: RequestHandler = async (req, res) => {
         }
 
         const userId = randomUUID();
+        const temporaryPassword = randomBytes(24).toString("base64url");
+        const passwordHash = hashPassword(temporaryPassword);
 
         // Insert user
         await pool.query(
@@ -78,6 +78,7 @@ export const bulkImportUsers: RequestHandler = async (req, res) => {
           role: user.role,
           window_id: user.window_id ?? null,
           department: user.department ?? null,
+          temporaryPassword,
         });
       } catch (error) {
         errors.push({
@@ -94,7 +95,6 @@ export const bulkImportUsers: RequestHandler = async (req, res) => {
       failed: errors.length,
       importedUsers,
       errors: errors.length > 0 ? errors : undefined,
-      temporaryPassword: importedUsers.length > 0 ? temporaryPassword : undefined,
     });
   } catch (error) {
     console.error("Bulk import error:", error);

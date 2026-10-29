@@ -13,6 +13,7 @@ import {
   WindowState,
   formatTicketCode,
   TicketStatusResponse,
+  PublicTicket,
   AnnouncementAudio,
 } from "../../shared/api";
 import { requestAivoovSpeech } from "../services/aivoov";
@@ -40,16 +41,99 @@ import {
 
 const NUMBER_REGEX = /\d+/;
 
-// Simple SSE hub
-const sseClients = new Set<{
-  id: string;
-  res: any;
-  heartbeat?: NodeJS.Timeout;
-}>();
-function sendSSE(ev: QueueEvent) {
-  const data =
-    `event: ${ev.type}\n` + `data: ${JSON.stringify(ev.payload)}\n\n`;
-  for (const { res } of sseClients) res.write(data);
+const publicSseClients = new Set<{ id: string; res: any; heartbeat?: NodeJS.Timeout }>();
+const adminSseClients = new Set<{ id: string; res: any; heartbeat?: NodeJS.Timeout }>();
+
+function toPublicTicket(ticket: Ticket): PublicTicket {
+  return {
+    id: ticket.id,
+    service: ticket.service,
+    number: ticket.number,
+    code: ticket.code,
+    status: ticket.status,
+    windowId: ticket.windowId,
+    createdAt: ticket.createdAt,
+    startedAt: ticket.startedAt,
+    completedAt: ticket.completedAt,
+    serviceCategory: ticket.serviceCategory,
+  };
+}
+
+function toPublicWindow(window: WindowState): WindowState {
+  return {
+    id: window.id,
+    name: window.name,
+    currentTicketId: window.currentTicketId,
+    busy: window.busy,
+    updatedAt: window.updatedAt,
+  };
+}
+
+function toPublicDisplay(state: DisplayState): DisplayState {
+  const project = (ticket: DisplayState["current"][number] | null) =>
+    ticket && {
+      id: ticket.id,
+      code: ticket.code,
+      service: ticket.service,
+      status: ticket.status,
+      windowId: ticket.windowId,
+      createdAt: ticket.createdAt,
+      updatedAt: ticket.updatedAt,
+    };
+  return {
+    current: state.current.map((ticket) => project(ticket)!),
+    next: project(state.next),
+    nextAfter: project(state.nextAfter),
+    waiting: state.waiting.map((ticket) => project(ticket)!),
+  };
+}
+
+function toPublicEvent(event: QueueEvent): QueueEvent {
+  switch (event.type) {
+    case "init": {
+      const snapshot = event.payload;
+      return {
+        type: "init",
+        payload: {
+          windows: snapshot.windows.map(toPublicWindow),
+          services: snapshot.services,
+          tickets: Object.fromEntries(
+            Object.entries(snapshot.tickets).map(([id, ticket]) => [id, toPublicTicket(ticket)]),
+          ),
+          display: toPublicDisplay(snapshot.display),
+        },
+      };
+    }
+    case "window.updated":
+      return { type: event.type, payload: toPublicWindow(event.payload) };
+    case "ticket.created":
+    case "ticket.updated":
+      return { type: event.type, payload: toPublicTicket(event.payload) };
+    case "display.updated":
+      return { type: event.type, payload: toPublicDisplay(event.payload) };
+    case "transfer.success":
+    case "transfer.received":
+      return {
+        type: event.type,
+        payload: {
+          source: event.payload.source,
+          target: event.payload.target,
+          ticket: { id: null, code: event.payload.ticket.code },
+          message: "Ticket transferred",
+        },
+      };
+  }
+}
+
+function serializeSSE(event: QueueEvent) {
+  return `event: ${event.type}\n` + `data: ${JSON.stringify(event.payload)}\n\n`;
+}
+
+function sendSSE(event: QueueEvent) {
+  const publicData = serializeSSE(toPublicEvent(event));
+  const adminData = serializeSSE(event);
+  for (const { res } of publicSseClients) res.write(publicData);
+  for (const { res } of adminSseClients) res.write(adminData);
 }
 
 function extractNumber(value: string): number | null {
@@ -109,128 +193,121 @@ async function generateAnnouncementAudio(
   return requestAivoovSpeech(sentence);
 }
 
-export const sseHandler: RequestHandler = async (req, res) => {
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection", "keep-alive");
-  res.flushHeaders?.();
+function createSseHandler(adminOnly: boolean): RequestHandler {
+  return async (req, res) => {
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders?.();
 
-  const client = { id: randomUUID(), res } as {
-    id: string;
-    res: any;
-    heartbeat?: NodeJS.Timeout;
-  };
-  sseClients.add(client);
-
-  // Heartbeat pings to keep connections alive across proxies
-  client.heartbeat = setInterval(() => {
-    try {
-      res.write(`event: ping\n` + `data: ${Date.now()}\n\n`);
-    } catch {}
-  }, 25000);
-
-  try {
-    const p = getPool();
-    const windowsDb = await listWindowsDb();
-
-    const ticketsRes = await p.query(
-      `SELECT id, service, number, code, status, window_id,
-              extract(epoch from created_at)*1000 as created_at,
-              extract(epoch from started_at)*1000 as started_at,
-              extract(epoch from completed_at)*1000 as completed_at,
-              notes, owner_name, woreda, service_category, selected_services,
-              transferred_from_window, transferred_to_window, transferred_to_user_id, remark,
-              extract(epoch from transferred_at)*1000 as transferred_at
-       FROM tickets`,
-    );
-    const ticketsList: Ticket[] = [];
-    const ticketsMap: Record<string, Ticket> = {};
-    for (const r of ticketsRes.rows) {
-      const ticket: Ticket = {
-        id: r.id,
-        service: r.service,
-        number: r.number,
-        code: r.code,
-        status: r.status,
-        windowId: r.window_id,
-        createdAt: Math.round(Number(r.created_at)),
-        startedAt: r.started_at ? Math.round(Number(r.started_at)) : undefined,
-        completedAt: r.completed_at
-          ? Math.round(Number(r.completed_at))
-          : undefined,
-        notes: r.notes ?? undefined,
-        ownerName: r.owner_name ?? undefined,
-        woreda: r.woreda ?? undefined,
-        serviceCategory: r.service_category ?? undefined,
-        selectedServices: Array.isArray(r.selected_services)
-          ? r.selected_services
-          : typeof r.selected_services === "string"
-            ? JSON.parse(r.selected_services)
-            : undefined,
-        remark: r.remark ?? undefined,
-        transferredFromWindow: r.transferred_from_window ?? undefined,
-        transferredToWindow: r.transferred_to_window ?? undefined,
-        transferredToUserId: r.transferred_to_user_id ?? undefined,
-        transferredAt: r.transferred_at
-          ? Math.round(Number(r.transferred_at))
-          : undefined,
-      };
-      ticketsList.push(ticket);
-      ticketsMap[r.id] = ticket;
-    }
-
-    // Enrich all tickets with service names
-    const enrichedTickets =
-      await enrichMultipleTicketsWithServiceNames(ticketsList);
-    for (const ticket of enrichedTickets) {
-      ticketsMap[ticket.id] = ticket;
-    }
-
-    const countersRes = await p.query(
-      `SELECT service, next_number FROM service_counters WHERE service != 'GLOBAL'`,
-    );
-    const waitingRes = await p.query(
-      `SELECT id, service FROM tickets WHERE status='waiting' ORDER BY created_at, number`,
-    );
-    const servicesState: Record<
-      ServiceType,
-      { nextNumber: number; waitingIds: string[] }
-    > = {};
-    for (const r of countersRes.rows) {
-      const svc = r.service as ServiceType;
-      servicesState[svc] = {
-        nextNumber: Number(r.next_number),
-        waitingIds: [],
-      };
-    }
-    for (const r of waitingRes.rows) {
-      const svc = r.service as ServiceType;
-      if (servicesState[svc]) servicesState[svc].waitingIds.push(r.id);
-    }
-
-    const payload = {
-      windows: windowsDb,
-      services: servicesState,
-      tickets: ticketsMap,
-      display: await displayStateDb(),
+    const client = { id: randomUUID(), res } as {
+      id: string;
+      res: any;
+      heartbeat?: NodeJS.Timeout;
     };
+    const clients = adminOnly ? adminSseClients : publicSseClients;
+    clients.add(client);
 
-    const init: QueueEvent = { type: "init", payload };
-    res.write(
-      `event: ${init.type}\n` + `data: ${JSON.stringify(init.payload)}\n\n`,
-    );
-  } catch (e) {
-    console.error("SSE Handler error:", e);
-    res.write(
-      `event: error\n` + `data: ${JSON.stringify({ error: String(e) })}\n\n`,
-    );
-  }
+    client.heartbeat = setInterval(() => {
+      try {
+        res.write(`event: ping\n` + `data: ${Date.now()}\n\n`);
+      } catch {}
+    }, 25000);
 
-  req.on("close", () => {
-    if (client.heartbeat) clearInterval(client.heartbeat);
-    sseClients.delete(client);
-  });
-};
+    try {
+      const p = getPool();
+      const windowsDb = await listWindowsDb();
+      const ticketsRes = await p.query(
+        `SELECT id, service, number, code, status, window_id,
+                extract(epoch from created_at)*1000 as created_at,
+                extract(epoch from started_at)*1000 as started_at,
+                extract(epoch from completed_at)*1000 as completed_at,
+                notes, owner_name, woreda, service_category, selected_services,
+                transferred_from_window, transferred_to_window, transferred_to_user_id, remark,
+                extract(epoch from transferred_at)*1000 as transferred_at
+         FROM tickets ${adminOnly ? "" : "WHERE status IN ('waiting', 'serving') AND created_at >= CURRENT_DATE"}`,
+      );
+      const ticketsList: Ticket[] = [];
+      const ticketsMap: Record<string, Ticket> = {};
+      for (const r of ticketsRes.rows) {
+        const ticket: Ticket = {
+          id: r.id,
+          service: r.service,
+          number: r.number,
+          code: r.code,
+          status: r.status,
+          windowId: r.window_id,
+          createdAt: Math.round(Number(r.created_at)),
+          startedAt: r.started_at ? Math.round(Number(r.started_at)) : undefined,
+          completedAt: r.completed_at
+            ? Math.round(Number(r.completed_at))
+            : undefined,
+          notes: r.notes ?? undefined,
+          ownerName: r.owner_name ?? undefined,
+          woreda: r.woreda ?? undefined,
+          serviceCategory: r.service_category ?? undefined,
+          selectedServices: Array.isArray(r.selected_services)
+            ? r.selected_services
+            : typeof r.selected_services === "string"
+              ? JSON.parse(r.selected_services)
+              : undefined,
+          remark: r.remark ?? undefined,
+          transferredFromWindow: r.transferred_from_window ?? undefined,
+          transferredToWindow: r.transferred_to_window ?? undefined,
+          transferredToUserId: r.transferred_to_user_id ?? undefined,
+          transferredAt: r.transferred_at
+            ? Math.round(Number(r.transferred_at))
+            : undefined,
+        };
+        ticketsList.push(ticket);
+        ticketsMap[r.id] = ticket;
+      }
+
+      const enrichedTickets =
+        await enrichMultipleTicketsWithServiceNames(ticketsList);
+      for (const ticket of enrichedTickets) ticketsMap[ticket.id] = ticket;
+
+      const countersRes = await p.query(
+        `SELECT service, next_number FROM service_counters WHERE service != 'GLOBAL'`,
+      );
+      const waitingRes = await p.query(
+        `SELECT id, service FROM tickets WHERE status='waiting' ${adminOnly ? "" : "AND created_at >= CURRENT_DATE"} ORDER BY created_at, number`,
+      );
+      const servicesState: Record<
+        ServiceType,
+        { nextNumber: number; waitingIds: string[] }
+      > = {};
+      for (const r of countersRes.rows) {
+        const svc = r.service as ServiceType;
+        servicesState[svc] = { nextNumber: Number(r.next_number), waitingIds: [] };
+      }
+      for (const r of waitingRes.rows) {
+        const svc = r.service as ServiceType;
+        if (servicesState[svc]) servicesState[svc].waitingIds.push(r.id);
+      }
+
+      const payload = {
+        windows: windowsDb,
+        services: servicesState,
+        tickets: ticketsMap,
+        display: await displayStateDb(),
+      };
+      const init: QueueEvent = { type: "init", payload };
+      res.write(serializeSSE(adminOnly ? init : toPublicEvent(init)));
+    } catch (e) {
+      console.error("SSE Handler error:", e);
+      res.write(`event: error\ndata: {"error":"Unable to load queue"}\n\n`);
+    }
+
+    req.on("close", () => {
+      if (client.heartbeat) clearInterval(client.heartbeat);
+      clients.delete(client);
+    });
+  };
+}
+
+export const sseHandler = createSseHandler(false);
+export const adminSseHandler = createSseHandler(true);
 
 export const createTicket: RequestHandler = async (req, res) => {
   const {
@@ -320,7 +397,7 @@ export const createTicket: RequestHandler = async (req, res) => {
 export const listWindows: RequestHandler = async (_req, res) => {
   try {
     const windows = await listWindowsDb();
-    res.json(windows);
+    res.json(windows.map(toPublicWindow));
   } catch (error) {
     console.error("Failed to list windows:", error);
     res.status(500).json({
@@ -638,13 +715,13 @@ export const clearNotes: RequestHandler = async (req, res) => {
 
 export const displayData: RequestHandler = async (_req, res) => {
   try {
-    const state = await displayStateDb();
+    const state = toPublicDisplay(await displayStateDb());
     const response: DisplayResponse = { state };
     return res.json(response);
   } catch (err) {
     console.error("[displayData] Error:", err);
     try {
-      const state = await displayStateDb();
+      const state = toPublicDisplay(await displayStateDb());
       const response: DisplayResponse = { state };
       return res.status(500).json(response);
     } catch {
@@ -657,42 +734,18 @@ export const getTicketStatus: RequestHandler = async (req, res) => {
   const code = String(req.params.code || "");
   if (!code) return res.status(400).json({ error: "Missing ticket code" });
 
-  console.log("🔍 getTicketStatus - searching for code:", code);
-
   try {
     const result = await getTicketByCodeDb(code);
-    console.log("📊 DB search result:", {
-      code,
-      found: !!result.ticket,
-      ticket: result.ticket
-        ? { code: result.ticket.code, number: result.ticket.number }
-        : null,
-    });
-    // Enrich ticket with service names
-    const ticket = result.ticket
-      ? await enrichSelectedServicesWithNames(result.ticket)
-      : null;
+    const ticket = result.ticket ? toPublicTicket(result.ticket) : null;
     const payload: TicketStatusResponse = {
       ticket,
       positionInQueue: result.positionInQueue,
       estimatedWaitSeconds: result.estimatedWaitSeconds,
-      currentEmployee: result.currentEmployee || null,
     };
-    console.log("✅ getTicketStatus returning:", {
-      code,
-      hasTicket: !!ticket,
-      status: ticket?.status || "N/A",
-    });
     return res.json(payload);
   } catch (e: any) {
     const errorMsg = e instanceof Error ? e.message : String(e);
-    console.error("❌ getTicketStatus error:", {
-      code,
-      error: errorMsg,
-      stack: e?.stack,
-    });
-    return res
-      .status(500)
-      .json({ error: errorMsg || "Failed to fetch ticket status" });
+    console.error("Ticket status lookup failed:", errorMsg);
+    return res.status(500).json({ error: "Failed to fetch ticket status" });
   }
 };

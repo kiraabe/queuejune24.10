@@ -166,7 +166,7 @@ export default function TicketManagement() {
     return () => clearInterval(interval);
   }, [caseHolds]);
 
-  useSSE("/api/events", (event) => {
+  useSSE("/api/admin/events", (event) => {
     if (event.type === "init") {
       const snapshot = event.payload as QueueSnapshot;
       setTickets(snapshot.tickets);

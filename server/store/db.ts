@@ -1192,7 +1192,7 @@ export async function initDb() {
       id uuid primary key default gen_random_uuid(),
       license_key text not null,
       license_key_hash text unique,
-      licensee text not null,
+      licensee text,
       licensee_encrypted text,
       status text not null default 'active' check (status in ('active', 'inactive', 'expired', 'revoked')),
       expires_at timestamptz,
@@ -1244,6 +1244,32 @@ export async function initDb() {
     await p.query(
       `ALTER TABLE licenses ADD COLUMN IF NOT EXISTS notes_encrypted text;`,
     ).catch(() => {}); // ignore if already exists
+    await p.query(`ALTER TABLE licenses ALTER COLUMN licensee DROP NOT NULL;`);
+
+    const legacyLicenses = await p.query(
+      `SELECT id, licensee, notes, licensee_encrypted, notes_encrypted
+       FROM licenses
+       WHERE (licensee IS NOT NULL AND licensee_encrypted IS NULL)
+          OR (notes IS NOT NULL AND notes_encrypted IS NULL)`,
+    );
+    if (legacyLicenses.rows.length) {
+      const { encryptField } = await import("../services/encryption");
+      for (const license of legacyLicenses.rows) {
+        await p.query(
+          `UPDATE licenses
+           SET licensee_encrypted = COALESCE(licensee_encrypted, $2),
+               notes_encrypted = COALESCE(notes_encrypted, $3),
+               licensee = NULL,
+               notes = NULL
+           WHERE id = $1`,
+          [
+            license.id,
+            license.licensee_encrypted ?? encryptField(license.licensee),
+            license.notes_encrypted ?? encryptField(license.notes),
+          ],
+        );
+      }
+    }
 
     console.log("✅ License management schema initialized");
 
@@ -2474,17 +2500,11 @@ export async function getTicketByCodeDb(code: string): Promise<{
   currentEmployee?: { id: string; fullName: string; jobTitle: string } | null;
 }> {
   const p = getPool();
-  console.log("🔎 getTicketByCodeDb - Searching for code:", code);
   const tRes = await p.query(
     `SELECT id, service, number, code, status, window_id, extract(epoch from created_at)*1000 as created_at, extract(epoch from started_at)*1000 as started_at, extract(epoch from completed_at)*1000 as completed_at, notes, owner_name, woreda, service_category, selected_services, transferred_from_window, extract(epoch from transferred_at)*1000 as transferred_at, field_visit_case_id
      FROM tickets WHERE code=$1 AND date_trunc('day', created_at) = CURRENT_DATE ORDER BY created_at DESC LIMIT 1`,
     [code],
   );
-  console.log("🔎 getTicketByCodeDb - Query result:", {
-    code,
-    rowCount: tRes.rowCount,
-    rows: tRes.rows.slice(0, 1),
-  });
   if (!tRes.rowCount)
     return { ticket: null, positionInQueue: null, estimatedWaitSeconds: null };
   const t = rowToTicket(tRes.rows[0]);
@@ -3285,10 +3305,9 @@ export async function logAudit(params: {
 }) {
   if (!isDbEnabled) {
     try {
-      // eslint-disable-next-line no-console
       console.log("AUDIT", {
         at: new Date().toISOString(),
-        ...params,
+        action: params.action,
       });
     } catch {}
     return;
@@ -4051,12 +4070,12 @@ export async function createLicenseDb(
     [
       encryptedLicenseKey,
       licenseKeyHash,
-      licensee,
+      null,
       licenseeEncrypted,
       'active',
       createdByUserId,
       expiresAt ? expiresAt / 1000 : null,
-      notes,
+      null,
       notesEncrypted,
     ],
   );
@@ -4083,50 +4102,41 @@ export async function listLicensesDb(): Promise<LicenseRecord[]> {
   const res = await p.query(
     `SELECT
        id,
-       license_key as "licenseKey",
        licensee,
        licensee_encrypted as "licenseeEncrypted",
        status,
        extract(epoch from expires_at)*1000 as "expiresAt",
        extract(epoch from created_at)*1000 as "createdAt",
        extract(epoch from updated_at)*1000 as "updatedAt",
-       created_by_user_id as "createdByUserId",
-       notes,
-       notes_encrypted as "notesEncrypted",
-       activated_machine_id as "activatedMachineId",
-       activated_host as "activatedHost"
+       created_by_user_id as "createdByUserId"
      FROM licenses
      ORDER BY created_at DESC`,
   );
 
-  // Decrypt fields for all records
-  return res.rows.map(record => ({
+  return res.rows.map((record) => ({
     id: record.id,
-    licenseKey: decryptField(record.licenseKey) || record.licenseKey,
+    licenseKey: "••••••••",
     licensee: record.licenseeEncrypted ? decryptField(record.licenseeEncrypted) || record.licensee : record.licensee,
     status: record.status,
     expiresAt: record.expiresAt,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
     createdByUserId: record.createdByUserId,
-    notes: record.notesEncrypted ? decryptField(record.notesEncrypted) : record.notes,
+    notes: null,
   }));
 }
 
 export async function updateLicenseStatusDb(
-  licenseKey: string,
+  licenseId: string,
   status: 'active' | 'inactive' | 'expired' | 'revoked',
 ): Promise<LicenseRecord | null> {
   const { decryptField } = await import("../services/encryption");
-  const crypto = await import("crypto");
   const p = getPool();
-
-  const licenseKeyHash = crypto.createHash("sha256").update(licenseKey).digest("hex");
 
   const res = await p.query(
     `UPDATE licenses
      SET status = $1, updated_at = now()
-     WHERE license_key_hash = $2
+     WHERE id = $2
      RETURNING
        id,
        license_key as "licenseKey",
@@ -4139,7 +4149,7 @@ export async function updateLicenseStatusDb(
        created_by_user_id as "createdByUserId",
        notes,
        notes_encrypted as "notesEncrypted"`,
-    [status, licenseKeyHash],
+    [status, licenseId],
   );
 
   if (!res.rows[0]) {
@@ -4149,27 +4159,25 @@ export async function updateLicenseStatusDb(
   const record = res.rows[0];
   return {
     id: record.id,
-    licenseKey: decryptField(record.licenseKey) || record.licenseKey,
+    licenseKey: "••••••••",
     licensee: record.licenseeEncrypted ? decryptField(record.licenseeEncrypted) || record.licensee : record.licensee,
     status: record.status,
     expiresAt: record.expiresAt,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
     createdByUserId: record.createdByUserId,
-    notes: record.notesEncrypted ? decryptField(record.notesEncrypted) : record.notes,
+    notes: null,
     activatedMachineId: record.activatedMachineId,
     activatedHost: record.activatedHost,
   };
 }
 
-export async function deleteLicenseDb(licenseKey: string): Promise<boolean> {
-  const crypto = await import("crypto");
+export async function deleteLicenseDb(licenseId: string): Promise<boolean> {
   const p = getPool();
-  const licenseKeyHash = crypto.createHash("sha256").update(licenseKey).digest("hex");
 
   const res = await p.query(
-    `DELETE FROM licenses WHERE license_key_hash = $1`,
-    [licenseKeyHash],
+    `DELETE FROM licenses WHERE id = $1`,
+    [licenseId],
   );
   return res.rowCount > 0;
 }

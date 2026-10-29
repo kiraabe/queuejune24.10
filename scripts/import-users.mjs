@@ -55,8 +55,6 @@ async function importUsers() {
   try {
     await client.query('BEGIN');
 
-    const temporaryPassword = 'TempPassword123';
-    const passwordHash = hashPassword(temporaryPassword);
     const importedUsers = [];
     const errors = [];
 
@@ -66,6 +64,7 @@ async function importUsers() {
         const username = generateUsername(user.full_name, i);
 
         const userId = randomUUID();
+        const passwordHash = hashPassword(randomBytes(24).toString('base64url'));
 
         // Insert user
         await client.query(
@@ -106,7 +105,6 @@ async function importUsers() {
     console.log('\n=== IMPORT SUMMARY ===');
     console.log(`Imported: ${importedUsers.length}/${users.length}`);
     console.log(`Failed: ${errors.length}`);
-    console.log(`\nTemporary password for all users: ${temporaryPassword}`);
 
     if (errors.length > 0) {
       console.log('\nErrors:');

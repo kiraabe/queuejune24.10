@@ -1463,11 +1463,17 @@ export const changePassword: RequestHandler = async (req, res) => {
     // Hash the new password
     const newPasswordHash = hashPassword(newPassword);
 
-    // Update password in database
-    await pool.query(`UPDATE users SET password_hash = $1 WHERE id = $2`, [
-      newPasswordHash,
-      userId,
-    ]);
+    await pool.query(
+      `WITH updated_user AS (
+         UPDATE users SET password_hash = $1 WHERE id = $2 RETURNING id
+       )
+       UPDATE user_sessions
+       SET revoked_at = now(), revoke_reason = 'invalidated'
+       WHERE user_id = (SELECT id FROM updated_user)
+         AND id <> $3
+         AND revoked_at IS NULL`,
+      [newPasswordHash, userId, result.session.id],
+    );
 
     // Log audit
     await logAudit({

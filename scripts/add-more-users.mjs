@@ -37,8 +37,6 @@ async function addUsers() {
   try {
     await client.query('BEGIN');
 
-    const temporaryPassword = 'TempPassword123';
-    const passwordHash = hashPassword(temporaryPassword);
     const importedUsers = [];
     const errors = [];
 
@@ -66,6 +64,7 @@ async function addUsers() {
 
         const jobTitleId = titleResult.rows[0].id;
         const userId = randomUUID();
+        const passwordHash = hashPassword(randomBytes(24).toString('base64url'));
 
         // Insert user
         await client.query(
@@ -112,7 +111,6 @@ async function addUsers() {
     console.log('\n=== IMPORT SUMMARY ===');
     console.log(`Added: ${importedUsers.length}/${users.length}`);
     console.log(`Errors: ${errors.length}`);
-    console.log(`\nTemporary password for all users: ${temporaryPassword}`);
 
     if (errors.length > 0) {
       console.log('\nErrors:');

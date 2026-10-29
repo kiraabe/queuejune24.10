@@ -77,10 +77,10 @@ export async function validateLicense(host: string, licenseKey?: string): Promis
   try {
     // Check if the key exists in the database (Pre-created by admin)
     const dbLicense = await getLicenseByKeyDb(licenseKey);
-    console.log(`[License] Database lookup for key ${licenseKey}:`, dbLicense ? "Found" : "Not found");
+    console.log(`[License] Database lookup result:`, dbLicense ? "Found" : "Not found");
 
     if (dbLicense) {
-      console.log(`[License] License details - status: ${dbLicense.status}, expires: ${dbLicense.expiresAt}, host: ${dbLicense.activatedHost}, licensee: ${dbLicense.licensee}`);
+      console.log(`[License] License status: ${dbLicense.status}`);
       // Check status and expiration in DB
       if (dbLicense.status !== 'active') {
         console.log(`[License] Status check failed: ${dbLicense.status} !== active`);

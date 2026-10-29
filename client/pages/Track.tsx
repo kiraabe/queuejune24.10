@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useSSE } from "@/hooks/use-sse";
-import type { Ticket, TicketStatusResponse } from "@shared/api";
+import type { PublicTicket, TicketStatusResponse } from "@shared/api";
 import { cn } from "@/lib/utils";
 import { TrackFooter } from "@/components/track/TrackFooter";
 import { TrackHeader } from "@/components/track/TrackHeader";
@@ -34,17 +34,11 @@ async function fetchStatus(code: string): Promise<TicketStatusResponse> {
 
 interface TrackingState {
   stage: "input" | "loading" | "success" | "error";
-  ticket: Ticket | null;
+  ticket: PublicTicket | null;
   position: number | null;
   estSeconds: number | null;
   error: string | null;
   searchedCode: string;
-  currentEmployee?: {
-    id: string;
-    fullName: string;
-    jobTitle: string;
-    jobTitleAmharic?: string;
-  } | null;
 }
 
 export default function Track() {
@@ -96,7 +90,6 @@ export default function Track() {
           estSeconds: data.estimatedWaitSeconds ?? null,
           error: null,
           searchedCode: normalizedCode,
-          currentEmployee: data.currentEmployee || null,
         });
       } else {
         console.log("Ticket not found for code:", normalizedCode);
@@ -180,7 +173,7 @@ export default function Track() {
     if (state.stage !== "success" || !state.ticket) return;
 
     if (ev.type === "ticket.updated") {
-      const t = ev.payload as Ticket;
+      const t = ev.payload as PublicTicket;
       if (t.code === state.searchedCode) {
         setState((prev) => ({ ...prev, ticket: t }));
         fetchStatus(state.searchedCode)
@@ -189,7 +182,6 @@ export default function Track() {
               ...prev,
               position: d.positionInQueue,
               estSeconds: d.estimatedWaitSeconds ?? null,
-              currentEmployee: d.currentEmployee || null,
             }));
           })
           .catch(() => {});
@@ -205,7 +197,6 @@ export default function Track() {
             ticket: d.ticket,
             position: d.positionInQueue,
             estSeconds: d.estimatedWaitSeconds ?? null,
-            currentEmployee: d.currentEmployee || null,
           }));
         })
         .catch(() => {});
@@ -242,22 +233,11 @@ export default function Track() {
     }
   };
 
-  const getStatusMessage = (
-    ticket: Ticket,
-    currentEmployee?: {
-      id: string;
-      fullName: string;
-      jobTitle: string;
-      jobTitleAmharic?: string;
-    } | null,
-  ) => {
+  const getStatusMessage = (ticket: PublicTicket) => {
     if (ticket.status === "waiting") {
       return "Waiting in queue";
     }
     if (ticket.status === "serving") {
-      if (currentEmployee) {
-        return `Being handled by ${currentEmployee.fullName}`;
-      }
       if (ticket.windowId) {
         return `Now Serving at Window ${ticket.windowId}`;
       }
@@ -269,12 +249,7 @@ export default function Track() {
     if (ticket.status === "skipped") {
       return "Skipped";
     }
-    if (ticket.status === "transferred") {
-      if (currentEmployee) {
-        return `Transferred to ${currentEmployee.fullName}`;
-      }
-      return "Transferred";
-    }
+    if (ticket.status === "transferred") return "Transferred";
     return ticket.status;
   };
 
@@ -394,32 +369,10 @@ export default function Track() {
                   Status
                 </p>
                 <p className="mt-2 text-xl font-semibold">
-                  {getStatusMessage(state.ticket, state.currentEmployee)}
+                  {getStatusMessage(state.ticket)}
                 </p>
               </div>
 
-              {state.currentEmployee &&
-                (state.ticket.status === "serving" ||
-                  state.ticket.status === "transferred") && (
-                  <div className="rounded-lg border border-green-500/40 bg-green-500/10 p-6">
-                    <p className="text-xs uppercase tracking-widest font-semibold text-green-700 dark:text-green-300">
-                      Currently Handled By
-                    </p>
-                    <p className="mt-2 text-lg font-semibold text-green-900 dark:text-green-100">
-                      {state.currentEmployee.fullName}
-                    </p>
-                    <div className="mt-1 space-y-1">
-                      <p className="text-sm text-green-700 dark:text-green-300">
-                        {state.currentEmployee.jobTitle}
-                      </p>
-                      {state.currentEmployee.jobTitleAmharic && (
-                        <p className="text-sm text-green-700 dark:text-green-300 font-medium">
-                          {state.currentEmployee.jobTitleAmharic}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-lg border border-border/60 bg-background/70 p-4">
@@ -465,34 +418,6 @@ export default function Track() {
                 </div>
               )}
 
-              {state.ticket.selectedServices &&
-                state.ticket.selectedServices.length > 0 && (
-                  <div className="rounded-lg border border-border/60 bg-background/70 p-4">
-                    <p className="text-xs uppercase text-muted-foreground">
-                      Selected Services
-                    </p>
-                    <ul className="mt-2 space-y-1">
-                      {state.ticket.selectedServices.map(
-                        (serviceName, index) => (
-                          <li key={index} className="text-sm">
-                            • {serviceName}
-                          </li>
-                        ),
-                      )}
-                    </ul>
-                  </div>
-                )}
-
-              {state.ticket.notes && (
-                <div className="rounded-lg border border-border/60 bg-background/70 p-4">
-                  <p className="text-xs uppercase text-muted-foreground">
-                    Notes
-                  </p>
-                  <p className="mt-2 whitespace-pre-wrap text-sm">
-                    {state.ticket.notes}
-                  </p>
-                </div>
-              )}
 
               <div className="rounded-lg border border-primary/40 bg-primary/10 p-4 text-sm text-primary">
                 <p>Updates appear automatically as the queue progresses.</p>

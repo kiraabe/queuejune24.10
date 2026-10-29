@@ -58,6 +58,20 @@ export interface Ticket {
   isFieldVisitGenerated?: boolean;
 }
 
+export type PublicTicket = Pick<
+  Ticket,
+  | "id"
+  | "service"
+  | "number"
+  | "code"
+  | "status"
+  | "windowId"
+  | "createdAt"
+  | "startedAt"
+  | "completedAt"
+  | "serviceCategory"
+>;
+
 // Case Hold Tracking
 export interface CaseHold {
   id: string; // uuid
@@ -218,10 +232,9 @@ export interface CurrentEmployee {
 }
 
 export interface TicketStatusResponse {
-  ticket: Ticket | null;
-  positionInQueue: number | null; // 1-based position if waiting, else null
-  estimatedWaitSeconds: number | null; // null if not applicable or unknown
-  currentEmployee?: CurrentEmployee | null; // Employee currently handling the ticket
+  ticket: PublicTicket | null;
+  positionInQueue: number | null;
+  estimatedWaitSeconds: number | null;
 }
 
 // Auth

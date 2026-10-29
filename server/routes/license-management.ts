@@ -125,7 +125,7 @@ export const listLicensesHandler: RequestHandler = async (req, res) => {
  */
 export const updateLicenseStatusHandler: RequestHandler = async (req, res) => {
   try {
-    const { licenseKey } = req.params;
+    const { licenseId } = req.params;
     const { status } = req.body as UpdateLicenseStatusRequest;
 
     // Validation
@@ -138,7 +138,7 @@ export const updateLicenseStatusHandler: RequestHandler = async (req, res) => {
     }
 
     const license = await updateLicenseStatusDb(
-      licenseKey,
+      licenseId,
       status as "active" | "inactive" | "expired" | "revoked",
     );
 
@@ -170,9 +170,9 @@ export const updateLicenseStatusHandler: RequestHandler = async (req, res) => {
  */
 export const deleteLicenseHandler: RequestHandler = async (req, res) => {
   try {
-    const { licenseKey } = req.params;
+    const { licenseId } = req.params;
 
-    const deleted = await deleteLicenseDb(licenseKey);
+    const deleted = await deleteLicenseDb(licenseId);
 
     if (!deleted) {
       return res.status(404).json({

@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { useSSE } from "@/hooks/use-sse";
 import { TrackHeader } from "@/components/track/TrackHeader";
-import type { Ticket, TicketStatusResponse } from "@shared/api";
+import type { PublicTicket, TicketStatusResponse } from "@shared/api";
 
 async function fetchStatus(code: string): Promise<TicketStatusResponse> {
   const res = await fetch(`/api/tickets/${encodeURIComponent(code)}`);
@@ -19,7 +19,7 @@ const detailValueClass = "mt-1 text-base font-medium text-slate-900";
 
 export default function TicketStatus() {
   const { code = "" } = useParams<{ code: string }>();
-  const [ticket, setTicket] = useState<Ticket | null>(null);
+  const [ticket, setTicket] = useState<PublicTicket | null>(null);
   const [position, setPosition] = useState<number | null>(null);
   const [estSeconds, setEstSeconds] = useState<number | null>(null);
 
@@ -52,7 +52,7 @@ export default function TicketStatus() {
 
   useSSE("/api/events", (ev) => {
     if (ev.type === "ticket.updated") {
-      const t = ev.payload as Ticket;
+      const t = ev.payload as PublicTicket;
       if (t.code === code) {
         setTicket(t);
         fetchStatus(code)
@@ -146,12 +146,6 @@ export default function TicketStatus() {
               </div>
             </div>
 
-            <div className={detailTileClass}>
-              <p className={detailLabelClass}>Notes</p>
-              <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">
-                {ticket?.notes || "—"}
-              </p>
-            </div>
           </div>
         </section>
       </main>
