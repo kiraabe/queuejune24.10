@@ -125,7 +125,6 @@ export default function Login() {
               className="grid gap-4"
               onSubmit={onSubmit}
               aria-describedby={error ? errorId : undefined}
-              noValidate
             >
               {/* Username */}
               <div className="grid gap-2">
@@ -133,6 +132,8 @@ export default function Login() {
                 <Input
                   id="username"
                   type="text"
+                  required
+                  maxLength={120}
                   placeholder={t("login.enterUsername")}
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
@@ -149,6 +150,8 @@ export default function Login() {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
+                    required
+                    maxLength={200}
                     autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}

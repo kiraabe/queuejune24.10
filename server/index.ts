@@ -233,8 +233,8 @@ export function createServer() {
     const referer = req.get("referer");
     const source = origin || referer;
     if (!source) {
-      if (req.headers.cookie?.includes("queue_session=")) {
-        return res.status(403).json({ error: "Origin required for authenticated writes" });
+      if (req.headers.cookie?.includes("queue_session=") || req.path === "/api/auth/login") {
+        return res.status(403).json({ error: "Origin required for this request" });
       }
       return next();
     }

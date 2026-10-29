@@ -449,9 +449,9 @@ export const login: RequestHandler = async (req, res) => {
     mode?: string;
     role?: string;
   };
-  const input = (body.username || "").trim();
+  const input = sanitizeUsername(body.username);
   const password = ensurePassword(body.password);
-  const desiredRole = (body.role || "").trim();
+  const desiredRole = typeof body.role === "string" ? body.role.trim() : "";
 
   if (!input || !password)
     return res.status(400).json({
@@ -470,10 +470,6 @@ export const login: RequestHandler = async (req, res) => {
 
   if (isWindowInput) {
     isWindowLogin = true;
-    console.log("🔐 Window login attempt:", {
-      windowId,
-      passwordLength: password?.length,
-    });
     loginKey = `window_${windowId}`;
     if (isLocked(req, loginKey)) {
       return res.status(429).json({
@@ -483,12 +479,7 @@ export const login: RequestHandler = async (req, res) => {
       });
     }
     userRow = await getUserByWindow(windowId);
-    console.log("👤 Window lookup:", { windowId, found: !!userRow });
   } else {
-    console.log("🔐 User login attempt:", {
-      username: input,
-      passwordLength: password?.length,
-    });
     loginKey = `user_${input}`;
     if (isLocked(req, loginKey)) {
       return res.status(429).json({
@@ -498,7 +489,6 @@ export const login: RequestHandler = async (req, res) => {
       });
     }
     userRow = await getUserByUsername(input);
-    console.log("👤 User lookup:", { username: input, found: !!userRow });
   }
 
   if (!userRow) {
@@ -506,73 +496,30 @@ export const login: RequestHandler = async (req, res) => {
     if (c >= 10) lockUserByIp(req, loginKey, 15);
     const gc = incrementGlobalAttempt(loginKey);
     if (gc >= 50) lockUserGlobally(loginKey, 15);
-    let errorMsg: string;
-    let message: string;
-
-    if (isWindowLogin) {
-      // Check if window exists in database
-      let windowExists = false;
-      try {
-        const pool = getPool();
-        const windowCheck = await pool.query(
-          `SELECT id FROM windows WHERE id = $1 LIMIT 1`,
-          [windowId],
-        );
-        windowExists = windowCheck.rows.length > 0;
-      } catch (err) {
-        // If we can't check, use generic error
-        windowExists = false;
-      }
-
-      if (windowExists) {
-        // Window exists but has no teller assigned
-        errorMsg = "teller not assign please assign";
-        message =
-          "No teller assigned to this window. Please assign a teller to this window.";
-      } else {
-        // Window doesn't exist
-        errorMsg = "Invalid window or password";
-        message = "Invalid window or password.";
-      }
-    } else {
-      errorMsg = "Invalid username or password";
-      message = "Invalid username or password.";
-    }
-
     return res.status(401).json({
-      error: errorMsg,
-      message: message,
+      error: "Invalid username or password",
+      message: "Invalid username or password.",
       code: "INVALID_CREDENTIALS",
     });
   }
 
   if (userRow.disabled) {
-    const accountType = isWindowLogin ? "window" : userRow.role;
-    return res.status(403).json({
-      error: `This ${accountType} account has been locked or disabled. Please contact the administrator.`,
-      message: `This ${accountType} account has been locked or disabled. Please contact the administrator.`,
-      code: "ACCOUNT_DISABLED",
+    return res.status(401).json({
+      error: "Invalid username or password",
+      message: "Invalid username or password.",
+      code: "INVALID_CREDENTIALS",
     });
   }
 
   const passwordMatch = verifyPassword(password, userRow.password_hash);
-  console.log("🔑 Password verification:", {
-    match: passwordMatch,
-    passwordLength: password?.length,
-    hashLength: userRow.password_hash?.length,
-  });
-
   if (!passwordMatch) {
     const c = incrementAttempt(req, loginKey);
     if (c >= 10) lockUserByIp(req, loginKey, 15);
     const gc = incrementGlobalAttempt(loginKey);
     if (gc >= 50) lockUserGlobally(loginKey, 15);
-    const errorMsg = isWindowLogin
-      ? "Invalid window or password"
-      : "Invalid username or password";
     return res.status(401).json({
-      error: errorMsg,
-      message: `${errorMsg}.`,
+      error: "Invalid username or password",
+      message: "Invalid username or password.",
       code: "INVALID_CREDENTIALS",
     });
   }
