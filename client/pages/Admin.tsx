@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useNavigate } from "react-router-dom";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import {
   BarChart3,
@@ -21,10 +22,21 @@ import AdminWindows from "@/components/admin/AdminWindows";
 import AdminFooter from "@/components/admin/AdminFooter";
 import { ProfileDropdown } from "@/components/admin/ProfileDropdown";
 
-export default function Admin() {
-  // Triple-check: Env Key == Entered Key == DB Key is required for initial activation.
-  // Once activated, the host is bound in the database and this page will load automatically.
-  const [activeTab, setActiveTab] = useState("dashboard");
+export type AdminSection =
+  | "dashboard"
+  | "employment"
+  | "sessions"
+  | "tickets"
+  | "windows"
+  | "settings"
+  | "profile";
+
+interface AdminProps {
+  section: AdminSection;
+}
+
+export default function Admin({ section }: AdminProps) {
+  const navigate = useNavigate();
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
 
   useEffect(() => {
@@ -41,43 +53,43 @@ export default function Admin() {
       id: "dashboard",
       label: "Dashboard",
       icon: <BarChart3 className="h-5 w-5" />,
-      onClick: () => setActiveTab("dashboard"),
+      path: "/admin/dashboard",
     },
     {
       id: "employment",
       label: "Employment",
       icon: <Briefcase className="h-5 w-5" />,
-      onClick: () => setActiveTab("employment"),
+      path: "/admin/employment",
     },
     {
       id: "sessions",
       label: "Sessions",
       icon: <Users className="h-5 w-5" />,
-      onClick: () => setActiveTab("sessions"),
+      path: "/admin/sessions",
     },
     {
       id: "tickets",
       label: "Tickets",
       icon: <Ticket className="h-5 w-5" />,
-      onClick: () => setActiveTab("tickets"),
+      path: "/admin/tickets",
     },
     {
       id: "windows",
       label: "Windows",
       icon: <MonitorPlay className="h-5 w-5" />,
-      onClick: () => setActiveTab("windows"),
+      path: "/admin/windows",
     },
     {
       id: "settings",
       label: "Settings",
       icon: <Settings className="h-5 w-5" />,
-      onClick: () => setActiveTab("settings"),
+      path: "/admin/settings",
     },
     {
       id: "profile",
       label: "Profile",
       icon: <User className="h-5 w-5" />,
-      onClick: () => setActiveTab("profile"),
+      path: "/admin/profile",
     },
   ];
 
@@ -86,7 +98,7 @@ export default function Admin() {
   );
 
   const renderContent = () => {
-    switch (activeTab) {
+    switch (section) {
       case "dashboard":
         return <AdminDashboard />;
       case "employment":
@@ -101,23 +113,19 @@ export default function Admin() {
         return <AdminSettings />;
       case "profile":
         return <AdminProfile />;
-      default:
-        return <AdminDashboard />;
     }
   };
 
-  // Mobile/Tablet layout
   if (!isDesktop) {
     return (
       <TooltipProvider>
-        <MobileAdminLayout navItems={navItems} activeTab={activeTab}>
+        <MobileAdminLayout navItems={navItems} activeTab={section}>
           {renderContent()}
         </MobileAdminLayout>
       </TooltipProvider>
     );
   }
 
-  // Desktop layout with tabs and footer
   return (
     <TooltipProvider>
       <div className="flex flex-col min-h-screen">
@@ -140,7 +148,11 @@ export default function Admin() {
               <ProfileDropdown navItems={navItems} />
             </div>
 
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <Tabs
+              value={section}
+              onValueChange={(value) => navigate(`/admin/${value}`)}
+              className="w-full"
+            >
               <TabsList className="flex h-11 w-full justify-start gap-1 overflow-x-auto">
                 {desktopNavItems.map((item) => (
                   <TabsTrigger
@@ -153,13 +165,9 @@ export default function Admin() {
                   </TabsTrigger>
                 ))}
               </TabsList>
-
-              {navItems.map((item) => (
-                <TabsContent key={item.id} value={item.id} className="mt-8 space-y-4 focus-visible:outline-none ring-offset-background">
-                  {renderContent()}
-                </TabsContent>
-              ))}
             </Tabs>
+
+            <div className="mt-8 space-y-4">{renderContent()}</div>
           </div>
         </div>
         <AdminFooter />

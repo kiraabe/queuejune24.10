@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { ProfileDropdown } from "./ProfileDropdown";
 
@@ -6,7 +7,7 @@ interface NavItem {
   id: string;
   label: string;
   icon: ReactNode;
-  onClick: () => void;
+  path: string;
 }
 
 interface MobileAdminLayoutProps {
@@ -20,6 +21,7 @@ export default function MobileAdminLayout({
   navItems,
   activeTab,
 }: MobileAdminLayoutProps) {
+  const navigate = useNavigate();
   // Filter nav items for mobile bottom nav
   const mobileNavItems = navItems.slice(0, 5); // Dashboard, Employment, Sessions, Tickets, Windows
 
@@ -53,7 +55,7 @@ export default function MobileAdminLayout({
         {mobileNavItems.map((item) => (
           <button
             key={item.id}
-            onClick={item.onClick}
+            onClick={() => navigate(item.path)}
             className={cn(
               "flex flex-col items-center justify-center gap-1 flex-1 py-2 transition-all duration-200 active:scale-95",
               activeTab === item.id

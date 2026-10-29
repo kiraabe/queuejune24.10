@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ChevronDown, Settings, User, LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { LanguageSubMenu } from "@/components/profile/LanguageSubMenu";
 import {
@@ -23,7 +24,7 @@ interface NavItem {
   id: string;
   label: string;
   icon: React.ReactNode;
-  onClick: () => void;
+  path: string;
 }
 
 interface ProfileDropdownProps {
@@ -32,6 +33,7 @@ interface ProfileDropdownProps {
 
 export function ProfileDropdown({ navItems }: ProfileDropdownProps) {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const settingsItem = navItems.find((item) => item.id === "settings");
   const profileItem = navItems.find((item) => item.id === "profile");
@@ -83,13 +85,13 @@ export function ProfileDropdown({ navItems }: ProfileDropdownProps) {
         </DropdownMenuLabel>
         <DropdownMenuSeparator className={userMenuSeparatorClass} />
         {profileItem && (
-          <DropdownMenuItem onSelect={profileItem.onClick} className={userMenuItemClass}>
+          <DropdownMenuItem onSelect={() => navigate(profileItem.path)} className={userMenuItemClass}>
             <User className={userMenuIconClass} />
             <span>Profile</span>
           </DropdownMenuItem>
         )}
         {settingsItem && (
-          <DropdownMenuItem onSelect={settingsItem.onClick} className={userMenuItemClass}>
+          <DropdownMenuItem onSelect={() => navigate(settingsItem.path)} className={userMenuItemClass}>
             <Settings className={userMenuIconClass} />
             <span>Settings</span>
           </DropdownMenuItem>

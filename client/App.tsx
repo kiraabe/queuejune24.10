@@ -145,10 +145,14 @@ const App = () => (
                   <Route path="/archiever/terms" element={<Terms />} />
                 </Route>
                 <Route element={<RequireAuth role="admin" />}>
-                  <Route
-                    path="/admin"
-                    element={<Admin />}
-                  />
+                  <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+                  <Route path="/admin/dashboard" element={<Admin section="dashboard" />} />
+                  <Route path="/admin/employment" element={<Admin section="employment" />} />
+                  <Route path="/admin/sessions" element={<Admin section="sessions" />} />
+                  <Route path="/admin/tickets" element={<Admin section="tickets" />} />
+                  <Route path="/admin/windows" element={<Admin section="windows" />} />
+                  <Route path="/admin/settings" element={<Admin section="settings" />} />
+                  <Route path="/admin/profile" element={<Admin section="profile" />} />
                   <Route path="/admin/privacy" element={<Privacy />} />
                   <Route path="/admin/terms" element={<Terms />} />
                 </Route>
