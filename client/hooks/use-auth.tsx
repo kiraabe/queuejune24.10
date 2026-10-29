@@ -17,6 +17,21 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+async function getPlatformVersion(): Promise<string | undefined> {
+  const userAgentData = (navigator as Navigator & {
+    userAgentData?: {
+      getHighEntropyValues: (hints: string[]) => Promise<{ platformVersion?: string }>;
+    };
+  }).userAgentData;
+  if (!userAgentData) return undefined;
+  try {
+    const values = await userAgentData.getHighEntropyValues(["platformVersion"]);
+    return values.platformVersion;
+  } catch {
+    return undefined;
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null | undefined>(undefined);
 
@@ -162,9 +177,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           finalScreenWidth = screenWidth;
         }
 
+        const platformVersion = await getPlatformVersion();
         const res = await apiFetch<LoginResponse>("/api/auth/login", {
           method: "POST",
-          body: JSON.stringify({ username, password, role, screenWidth: finalScreenWidth }),
+          body: JSON.stringify({
+            username,
+            password,
+            role,
+            screenWidth: finalScreenWidth,
+            platformVersion,
+          }),
         });
         setUser(res.user);
         return res.user;

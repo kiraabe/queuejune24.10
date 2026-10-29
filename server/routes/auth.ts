@@ -302,6 +302,7 @@ function keyFor(req: Request, username: string) {
 function normalizeOsDetection(
   uaResult: { os: { name: string | null; version: string | null } },
   req: Request,
+  platformVersion: string | undefined,
 ): { osName: string; osVersion: string } {
   // Extract OS info directly from ua-parser-js os object
   let osName = uaResult.os.name || "Unknown";
@@ -340,11 +341,6 @@ function normalizeOsDetection(
   // - Windows 11 reports platform version >= 13, Windows 10 reports <= 10
   // - Fallback: Without Client Hints, ua-parser-js will report "10" (kernel version)
   if (osName === "Windows" && osVersion === "10") {
-    // Check for Sec-CH-UA-Platform-Version header sent by browser
-    const platformVersion = req.headers["sec-ch-ua-platform-version"] as
-      | string
-      | undefined;
-
     if (platformVersion && platformVersion.trim()) {
       try {
         // Extract major version number from platform version string
@@ -448,6 +444,7 @@ export const login: RequestHandler = async (req, res) => {
     otp?: string;
     mode?: string;
     role?: string;
+    platformVersion?: string;
   };
   const input = sanitizeUsername(body.username);
   const password = ensurePassword(body.password);
@@ -586,7 +583,13 @@ export const login: RequestHandler = async (req, res) => {
   const uaResult = parser.getResult();
 
   // Extract and normalize OS details
-  const { osName, osVersion } = normalizeOsDetection(uaResult as any, req);
+  const clientPlatformVersion =
+    typeof body.platformVersion === "string" ? body.platformVersion : undefined;
+  const { osName, osVersion } = normalizeOsDetection(
+    uaResult as any,
+    req,
+    clientPlatformVersion,
+  );
 
   // Use device-detector-js for more precise device detection
   const detector = new DeviceDetector();
