@@ -4139,16 +4139,13 @@ export async function updateLicenseStatusDb(
      WHERE id = $2
      RETURNING
        id,
-       license_key as "licenseKey",
        licensee,
        licensee_encrypted as "licenseeEncrypted",
        status,
        extract(epoch from expires_at)*1000 as "expiresAt",
        extract(epoch from created_at)*1000 as "createdAt",
        extract(epoch from updated_at)*1000 as "updatedAt",
-       created_by_user_id as "createdByUserId",
-       notes,
-       notes_encrypted as "notesEncrypted"`,
+       created_by_user_id as "createdByUserId"`,
     [status, licenseId],
   );
 

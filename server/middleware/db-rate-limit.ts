@@ -1,5 +1,11 @@
 import { Request, Response, NextFunction } from "express";
-import { checkQueryRateLimit, getActiveConnectionsCount } from "../services/query-rate-limiter";
+import { randomUUID } from "node:crypto";
+import {
+  checkQueryRateLimit,
+  getActiveConnectionsCount,
+  registerConnection,
+  unregisterConnection,
+} from "../services/query-rate-limiter";
 import { findSessionByToken, SESSION_COOKIE, SESSION_IDLE_TIMEOUT_SECONDS } from "../store/sessions";
 import { parseCookies } from "../utils/auth";
 
@@ -14,17 +20,13 @@ export function dbRateLimitMiddleware(
 ) {
   // Extract user ID from request (should be set by auth middleware)
   const userId = (req as any).userId;
+  const rateLimitKey = userId
+    ? `user:${userId}`
+    : `ip:${req.socket.remoteAddress || req.ip}`;
 
-  // Skip rate limiting if no user is authenticated
-  if (!userId) {
-    return next();
-  }
-
-  // Check query rate limit
-  const rateLimitStatus = checkQueryRateLimit(userId);
+  const rateLimitStatus = checkQueryRateLimit(rateLimitKey);
 
   if (!rateLimitStatus.allowed) {
-    const resetDate = new Date(rateLimitStatus.resetAt);
     return res.status(429).json({
       error: "Rate limit exceeded",
       code: "DB_RATE_LIMIT_EXCEEDED",
@@ -47,7 +49,7 @@ export function dbRateLimitMiddleware(
   // Log high usage
   if (rateLimitStatus.remaining <= 10) {
     console.warn(
-      `[DB-Rate-Limit] User ${userId} approaching limit: ${rateLimitStatus.remaining} queries remaining`
+      `[DB-Rate-Limit] ${rateLimitKey} approaching limit: ${rateLimitStatus.remaining} requests remaining`
     );
   }
 
@@ -79,8 +81,7 @@ export function strictDbRateLimitMiddleware(
 
   if (isWriteOperation && !isHeartbeat) {
     const activeConnections = getActiveConnectionsCount(userId);
-    // Stricter limit: max 2 concurrent writes per user
-    if (activeConnections > 2) {
+    if (activeConnections >= 2) {
       return res.status(429).json({
         error: "Too many concurrent operations",
         code: "DB_CONCURRENT_OPERATION_LIMIT",
@@ -89,6 +90,19 @@ export function strictDbRateLimitMiddleware(
         maxAllowed: 2,
       });
     }
+
+    const connectionId = randomUUID();
+    const registration = registerConnection(userId, connectionId);
+    if (!registration.allowed) {
+      return res.status(429).json({
+        error: "Too many concurrent operations",
+        code: "DB_CONCURRENT_OPERATION_LIMIT",
+        message: registration.reason,
+      });
+    }
+    const release = () => unregisterConnection(userId, connectionId);
+    res.once("finish", release);
+    res.once("close", release);
   }
 
   next();
