@@ -49,23 +49,10 @@ const ITEMS_PER_PAGE = 10;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/**
- * Windows 11 uses the same "Windows NT 10.0" UA string as Windows 10.
- * The only reliable way to distinguish them is via the Sec-CH-UA-Platform-Version
- * client hint (major version >= 13 → Win11). When the server stores osVersion
- * it should already apply this logic. As a UI-side guard, if osName is "Windows"
- * and osVersion is exactly "10" we display "10 / 11" to avoid misreporting.
- */
 function resolveOsLabel(osName: string | null, osVersion: string | null): string {
   const name = osName ?? "—";
-  const version = osVersion ?? "";
-
-  if (!version) return name;
-
-  // Avoid asserting "10" when it might actually be 11
-  if (name === "Windows" && version === "10") return "Windows 10 / 11";
-
-  return `${name} ${version}`;
+  if (!osVersion) return name;
+  return `${name} ${osVersion}`;
 }
 
 function formatTime(timestamp: number | null | undefined): string {
@@ -196,8 +183,7 @@ function OsCell({ session }: { session: SessionSummary }) {
           {(session.osName === "Windows" || session.os === "Windows") &&
             session.osVersion === "10" && (
               <div className="text-muted-foreground mt-1">
-                Windows 11 uses the same user-agent as Windows 10.<br />
-                Enable Sec-CH-UA-Platform-Version on the server for exact detection.
+                Windows 11 is only reported by Chromium browsers such as Chrome and Edge.
               </div>
             )}
         </div>
