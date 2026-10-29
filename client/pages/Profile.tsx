@@ -5,7 +5,6 @@ import { ArrowLeft, Copy, Check } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useTranslation } from "@/hooks/use-translation";
 import { apiFetch } from "@/lib/api";
-import { LanguageSwitcher } from "@/components/language/LanguageSwitcher";
 import { ChangePasswordForm } from "@/components/ChangePasswordForm";
 import {
   Card,
@@ -92,7 +91,6 @@ function ProfileContent({ user: initialUser }: { user: NonNullable<ReturnType<ty
               </Button>
               <h1 className="text-xl sm:text-2xl font-semibold">{t("buttons.myProfile")}</h1>
             </div>
-            <LanguageSwitcher variant="dropdown-icon" />
           </div>
         </div>
 
