@@ -28,6 +28,7 @@ import { RequireAuth } from "@/components/auth/RequireAuth";
 import { RestrictPublicAccess } from "@/components/auth/RestrictPublicAccess";
 import { LicenseProvider } from "@/components/license/LicenseProvider";
 import { LanguageProvider } from "@/hooks/use-language";
+import { homePathForUser } from "@/lib/role-home";
 
 // Loading fallback component
 function LoadingFallback() {
@@ -47,11 +48,8 @@ function TellerHomeRedirect() {
   const { user } = useAuth();
   if (user === undefined) return null;
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role === "teller" && user.windowId)
-    return <Navigate to={`/teller/${user.windowId}`} replace />;
-  // Admins should go to admin panel, not teller console
-  if (user.role === "admin") return <Navigate to="/admin" replace />;
-  // If user has multiple roles and is on this page, redirect to role selector
+  const home = homePathForUser(user);
+  if (home) return <Navigate to={home} replace />;
   if (user.roles && user.roles.length > 1)
     return <Navigate to="/role-selector" replace />;
   return <Navigate to="/" replace />;

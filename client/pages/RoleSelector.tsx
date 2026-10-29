@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
+import { homePathForUser } from "@/lib/role-home";
 import { KeyRound, Building2, Users, UserCheck, LogOut } from "lucide-react";
 
 const roleConfig = {
@@ -40,14 +41,7 @@ export default function RoleSelector() {
   useEffect(() => {
     // If user has only one role, redirect to appropriate page
     if (user && user.roles && user.roles.length === 1) {
-      const role = user.role;
-      if (role === "admin") navigate("/admin");
-      else if (role === "reception") navigate("/reception");
-      else if (role === "teller" && user.windowId)
-        navigate(`/teller/${user.windowId}`);
-      else if (role === "employee") navigate("/employee");
-      else if (role === "archiever") navigate("/archiever");
-      else navigate("/");
+      navigate(homePathForUser(user) ?? "/");
     }
   }, [user, navigate]);
 
@@ -60,27 +54,11 @@ export default function RoleSelector() {
 
   const handleRoleSelect = async (role: string) => {
     if (role === currentRole) {
-      // Same role, just navigate
-      const config = roleConfig[role as keyof typeof roleConfig];
-      if (role === "admin") navigate("/admin");
-      else if (role === "reception") navigate("/reception");
-      else if (role === "teller" && user.windowId)
-        navigate(`/teller/${user.windowId}`);
-      else if (role === "employee") navigate("/employee");
-      else if (role === "archiever") navigate("/archiever");
-      else navigate("/");
+      navigate(homePathForUser(user) ?? "/");
     } else {
-      // Switch role
       try {
         const updatedUser = await switchRole(role);
-        // Navigate after switching
-        if (role === "admin") navigate("/admin");
-        else if (role === "reception") navigate("/reception");
-        else if (role === "teller" && user.windowId)
-          navigate(`/teller/${user.windowId}`);
-        else if (role === "employee") navigate("/employee");
-        else if (role === "archiever") navigate("/archiever");
-        else navigate("/");
+        navigate(homePathForUser(updatedUser) ?? "/");
       } catch (error) {
         console.error("Failed to switch role:", error);
       }
