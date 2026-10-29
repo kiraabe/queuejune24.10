@@ -1,5 +1,6 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
+import { homePathForUser } from "@/lib/role-home";
 
 export function RequireAuth({
   role,
@@ -16,6 +17,7 @@ export function RequireAuth({
         replace
       />
     );
-  if (role && user.role !== role) return <Navigate to="/" replace />;
+  if (role && user.role !== role)
+    return <Navigate to={homePathForUser(user) ?? "/"} replace />;
   return <Outlet />;
 }

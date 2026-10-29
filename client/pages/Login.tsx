@@ -7,31 +7,17 @@ import { Label } from "@/components/ui/label";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useTranslation } from "@/hooks/use-translation";
+import { homePathForUser } from "@/lib/role-home";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-/**
- * Returns the default post-login path for a given role.
- * Pure function — easy to unit-test independently of the component.
- */
-function defaultPathForRole(role: string, windowId?: number | null): string {
-  switch (role) {
-    case "admin":     return "/admin";
-    case "teller":    return windowId ? `/teller/${windowId}` : "/teller";
-    case "reception": return "/reception";
-    case "employee":  return "/employee";
-    case "archiever": return "/archiever";
-    default:          return "/";
-  }
-}
 
 /** Allowed redirect prefixes per role. */
 const ALLOWED_REDIRECTS: Record<string, string[]> = {
   admin:     ["/", "/admin", "/teller", "/reception", "/queue", "/display", "/tickets/", "/role-selector"],
-  teller:    ["/", "/teller", "/queue", "/display", "/tickets/", "/role-selector"],
-  reception: ["/", "/reception", "/queue", "/display", "/tickets/", "/role-selector"],
-  employee:  ["/", "/employee", "/queue", "/display", "/tickets/", "/role-selector"],
-  archiever: ["/", "/archiever", "/queue", "/display", "/tickets/", "/role-selector"],
+  teller:    ["/teller", "/tickets/", "/role-selector"],
+  reception: ["/reception", "/tickets/", "/role-selector"],
+  employee:  ["/employee", "/tickets/", "/role-selector"],
+  archiever: ["/archiever", "/tickets/", "/role-selector"],
 };
 
 /**
@@ -89,7 +75,7 @@ export default function Login() {
         return;
       }
 
-      const defaultPath   = defaultPathForRole(user.role, user.windowId);
+      const defaultPath   = homePathForUser(user) ?? "/";
       const redirectParam = params.get("redirect");
 
       const to =

@@ -31,6 +31,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useTranslation } from "@/hooks/use-translation";
+import { homePathForUser } from "@/lib/role-home";
 
 // Live system stats are computed from SSE init + updates
 
@@ -292,20 +293,8 @@ export default function Index() {
   // Wait for auth to load
   if (user === undefined) return null;
 
-  // Redirect admin users to their admin panel
-  if (user?.role === "admin") {
-    return <Navigate to="/admin" replace />;
-  }
-
-  // Redirect employee users to their employee page
-  if (user?.role === "employee") {
-    return <Navigate to="/employee" replace />;
-  }
-
-  // Redirect archiever users to their archiever page
-  if (user?.role === "archiever") {
-    return <Navigate to="/archiever" replace />;
-  }
+  const home = user ? homePathForUser(user) : null;
+  if (home) return <Navigate to={home} replace />;
 
 
   return (

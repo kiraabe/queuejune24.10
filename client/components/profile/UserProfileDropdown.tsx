@@ -58,7 +58,6 @@ export function UserProfileDropdown() {
   };
 
   const initials = getInitials(user.fullName, user.username);
-  const isReception = user.role === "reception";
 
   const identityHeader = (
     <DropdownMenuLabel className="flex items-center gap-3 px-2 py-2 font-normal">
@@ -89,54 +88,6 @@ export function UserProfileDropdown() {
     </DropdownMenuItem>
   );
 
-  // For reception users, show simplified dropdown with just language and logout
-  if (isReception) {
-    return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-2 px-2 h-10"
-            aria-label="User menu"
-          >
-            <Avatar className="h-8 w-8">
-              <AvatarFallback className="text-xs font-semibold">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <div className="hidden sm:flex flex-col items-start gap-0.5">
-              <span className="text-sm font-medium leading-none truncate max-w-[150px]">
-                {user.fullName || user.username}
-              </span>
-              <span className="text-xs text-muted-foreground capitalize">
-                {user.role}
-              </span>
-            </div>
-            <ChevronDown className="h-4 w-4 opacity-50" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="end"
-          sideOffset={8}
-          collisionPadding={12}
-          className={userMenuContentClass}
-        >
-          {identityHeader}
-
-          <DropdownMenuSeparator className={userMenuSeparatorClass} />
-
-          <LanguageSubMenu />
-
-          <DropdownMenuSeparator className={userMenuSeparatorClass} />
-
-          {logoutItem}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    );
-  }
-
-  // For other roles, show full dropdown menu with profile option
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
