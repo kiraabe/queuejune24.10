@@ -255,15 +255,16 @@ export default function Display() {
       <div className="w-full grid gap-3 sm:gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mb-8 sm:mb-12 md:mb-16">
         {windows.map((w) => {
           const code = windowCodes[w.id] ?? null;
+          const windowName = w.name.replace(/^window\b/i, "Window");
           return (
             <Card
               key={w.id}
               className="rounded-2xl sm:rounded-3xl border border-border/60 bg-card/90 p-4 sm:p-6 shadow-lg hover:shadow-xl transition-shadow"
               role="region"
-              aria-label={`${w.name}: ${code ? `Now serving ${code}` : "Idle"}`}
+              aria-label={`${windowName}: ${code ? `Now serving ${code}` : "Idle"}`}
             >
               <div className="text-xs sm:text-sm uppercase tracking-wide font-medium text-muted-foreground">
-                {w.name}
+                {windowName}
               </div>
               <div className="mt-3 sm:mt-4 text-xl sm:text-2xl md:text-3xl font-display font-bold">
                 <span className="text-green-600 dark:text-green-400">
